@@ -1,23 +1,11 @@
-import {
-  Magick,
-  MagickFormat,
-  MagickImageCollection,
-  MagickReadSettings,
-  MagickGeometry,
-  QuantizeSettings,
-  DitherMethod
-} from "@imagemagick/magick-wasm";
-
-import type {
-  FileData,
-  FileFormat,
-  FormatHandler
-} from "../FormatHandler.ts";
+import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
+import { Magick, MagickFormat, MagickImageCollection, MagickReadSettings, MagickGeometry, QuantizeSettings, DitherMethod } from "@imagemagick/magick-wasm";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
+import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class aperturePictureHandler implements FormatHandler {
   public name: string = "aperturePicture";
-  public supportedFormats ? : FileFormat[];
+  public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 
   async init() {
@@ -44,7 +32,7 @@ class aperturePictureHandler implements FormatHandler {
     inputFiles: FileData[],
     inputFormat: FileFormat,
     outputFormat: FileFormat,
-  ): Promise < FileData[] > {
+  ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
     const decoder = new TextDecoder();
 
@@ -53,7 +41,7 @@ class aperturePictureHandler implements FormatHandler {
         const text = decoder.decode(file.bytes);
         const lines = text.split(/\r?\n/);
         if (lines[0] !== "APERTURE IMAGE FORMAT (c) 1985")
-          throw new Error("File is not an APF file");
+          throw new BadMagicError(`File is not an APF file as it lacks the magic header. First line of file: ${lines[0]}`);
 
         const SK = parseInt(lines[1]);
         const data = lines.slice(2).join("");
@@ -116,7 +104,7 @@ class aperturePictureHandler implements FormatHandler {
 function decodeAPF(data: string, SK: number): Uint8Array {
   const w = 320,
     h = 200;
-  if (SK <= 0) throw new Error("Malformed APF file (SK is invalid, <= 0)");
+  if (SK <= 0) throw new RangeError(`Malformed APF file (SK is invalid, <= 0): ${SK}`);
   const bmp = new Uint8Array(w * h);
   let x = 0,
     y = h - 1,
