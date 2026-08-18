@@ -51,7 +51,12 @@ class mclangHandler implements FormatHandler {
         }
 
         resultText = Object.entries(obj)
-            .map(convertJSONEntry)
+            .map(([k, v])=>{
+              if (typeof v === "object") {
+                return `${k}=${JSON.stringify(v)}`;
+              }
+              return `${k}=${v}`;
+            })
             .join("\n");
         }
 
@@ -89,13 +94,6 @@ class mclangHandler implements FormatHandler {
 
     return outputFiles;
     }
-
-  private convertJSONEntry([k, v]) {
-    if (typeof v === "Object") {
-      return `${k}=${v.toString()}`;
-    }
-    return `${k}=${v}`;
-  }
 }
 
 export default mclangHandler;
