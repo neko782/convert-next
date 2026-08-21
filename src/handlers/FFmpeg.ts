@@ -1,4 +1,5 @@
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
+import type { ConvertContext } from "../ui/ProgressStore.js";
 
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { LogEvent } from "@ffmpeg/ffmpeg";
@@ -31,18 +32,18 @@ class FFmpegHandler implements FormatHandler {
   #ffmpeg?: FFmpeg;
 
   #stdout: string = "";
-  handleStdout (log: LogEvent) {
+  #boundStdoutHandler = (log: LogEvent) => {
     this.#stdout += log.message + "\n";
-  }
+  };
   clearStdout () {
     this.#stdout = "";
   }
   async getStdout (callback: () => void | Promise<void>) {
     if (!this.#ffmpeg) return "";
     this.clearStdout();
-    this.#ffmpeg.on("log", this.handleStdout.bind(this));
+    this.#ffmpeg.on("log", this.#boundStdoutHandler);
     await callback();
-    this.#ffmpeg.off("log", this.handleStdout.bind(this));
+    this.#ffmpeg.off("log", this.#boundStdoutHandler);
     return this.#stdout;
   }
 
@@ -59,6 +60,7 @@ class FFmpegHandler implements FormatHandler {
   async reloadFFmpeg () {
     if (!this.#ffmpeg) return;
     this.terminateFFmpeg();
+    this.#ffmpeg = new FFmpeg();
     await this.loadFFmpeg();
   }
   /**
@@ -269,14 +271,40 @@ class FFmpegHandler implements FormatHandler {
     inputFiles: FileData[],
     inputFormat: FileFormat,
     outputFormat: FileFormat,
-    args?: string[]
+    args?: string[],
+    ctx?: ConvertContext
   ): Promise<FileData[]> {
 
     if (!this.#ffmpeg) {
       throw new InitializationError("Handler not initialized.");
     }
 
+    ctx?.throwIfAborted();
+    ctx?.log("Reloading FFmpeg...");
     await this.reloadFFmpeg();
+
+    if (ctx) {
+      const abortHandler = () => {
+        ctx.log("Abort signal received — terminating FFmpeg.", "error");
+        this.terminateFFmpeg();
+      };
+      ctx.signal.addEventListener("abort", abortHandler, { once: true });
+
+      this.#ffmpeg.on("log", ({ message, type }) => {
+        let level: "log" | "error" | "warn" = "log";
+        if (type === "stderr") level = "warn";
+        ctx.log(message, level);
+      });
+
+      this.#ffmpeg.on("progress", ({ progress, time }) => {
+        if (!Number.isFinite(progress) || progress < 0) {
+          const seconds = time / 1_000_000;
+          ctx.progress(`Transcoding... (${seconds.toFixed(1)}s processed)`, p => Math.min(0.95, p + 0.001));
+        } else {
+          ctx.progress(`Transcoding...`, Math.max(0, Math.min(0.99, progress)));
+        }
+      });
+    }
 
     let forceFPS = 0;
     if (inputFormat.mime === "image/png" || inputFormat.mime === "image/jpeg") {
@@ -285,7 +313,9 @@ class FFmpegHandler implements FormatHandler {
 
     let fileIndex = 0;
     let listString = "";
+    ctx?.log(`Preparing ${inputFiles.length} input files...`);
     for (const file of inputFiles) {
+      ctx?.throwIfAborted();
       const entryName = `file_${fileIndex++}.${inputFormat.extension}`;
       await this.#ffmpeg.writeFile(entryName, new Uint8Array(file.bytes));
       listString += `file '${entryName}'\n`;
@@ -310,6 +340,8 @@ class FFmpegHandler implements FormatHandler {
       await this.#ffmpeg!.exec(command);
     });
 
+    ctx?.throwIfAborted();
+    ctx?.log("Cleaning up input files...");
     for (let i = 0; i < fileIndex; i ++) {
       const entryName = `file_${i}.${inputFormat.extension}`;
       await this.#ffmpeg.deleteFile(entryName);
@@ -317,23 +349,24 @@ class FFmpegHandler implements FormatHandler {
 
     if (stdout.includes("Conversion failed!\n")) {
 
-      const oldArgs = args ? args : []
+      ctx?.log("Conversion failed, attempting auto-fix...", "error");
+      const oldArgs = args ?? [];
       if (stdout.includes(" not divisible by") && !oldArgs.includes("-vf")) {
         const division = stdout.split(" not divisible by ")[1].split(" ")[0];
-        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-vf", `pad=ceil(iw/${division})*${division}:ceil(ih/${division})*${division}`]);
+        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-vf", `pad=ceil(iw/${division})*${division}:ceil(ih/${division})*${division}`], ctx);
       }
       if (stdout.includes("width and height must be a multiple of") && !oldArgs.includes("-vf")) {
         const division = stdout.split("width and height must be a multiple of ")[1].split(" ")[0].split("")[0];
-        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-vf", `pad=ceil(iw/${division})*${division}:ceil(ih/${division})*${division}`]);
+        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-vf", `pad=ceil(iw/${division})*${division}:ceil(ih/${division})*${division}`], ctx);
       }
       if (stdout.includes("Valid sizes are") && !oldArgs.includes("-s")) {
         const newSize = stdout.split("Valid sizes are ")[1].split(".")[0].split(" ").pop();
         if (typeof newSize !== "string") throw stdout;
-        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-s", newSize]);
+        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-s", newSize], ctx);
       }
       if (stdout.includes("does not support that sample rate, choose from (") && !oldArgs.includes("-ar")) {
         const acceptedBitrate = stdout.split("does not support that sample rate, choose from (")[1].split(", ")[0];
-        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-ar", acceptedBitrate]);
+        return this.doConvert(inputFiles, inputFormat, outputFormat, [...oldArgs, "-ar", acceptedBitrate], ctx);
       }
 
       throw stdout;
@@ -341,16 +374,18 @@ class FFmpegHandler implements FormatHandler {
 
     let bytes: Uint8Array;
 
-    // Validate that output file exists before attempting to read
+    ctx?.log("Reading output file...");
     let fileData;
     try {
       fileData = await this.#ffmpeg.readFile("output");
     } catch (e) {
-      throw new Error(`Output file not created: ${e}`);
+      ctx?.log(`Output file not created: ${e}`, "error");
+      throw `Output file not created: ${e}`;
     }
 
     if (!fileData || (fileData instanceof Uint8Array && fileData.length === 0)) {
-      throw new Error("FFmpeg failed to produce output file.");
+      ctx?.log("FFmpeg failed to produce output file", "error");
+      throw "FFmpeg failed to produce output file";
     }
     if (!(fileData instanceof Uint8Array)) {
       const encoder = new TextEncoder();
@@ -364,6 +399,9 @@ class FFmpegHandler implements FormatHandler {
 
     const baseName = inputFiles[0].name.split(".").slice(0, -1).join(".");
     const name = baseName + "." + outputFormat.extension;
+
+    ctx?.progress("Conversion complete!", 1);
+    ctx?.log(`Successfully converted to ${name} (${bytes.length} bytes)`);
 
     return [{ bytes, name }];
 
