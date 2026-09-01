@@ -16,9 +16,8 @@ class TypstHandler implements FormatHandler {
   private $typst?: TypstSnippet;
 
   async init() {
-    const { $typst } = await import(
-      "@myriaddreamin/typst.ts/dist/esm/contrib/snippet.mjs"
-    );
+    const { $typst } =
+      await import("@myriaddreamin/typst.ts/dist/esm/contrib/snippet.mjs");
 
     $typst.setCompilerInitOptions({
       getModule: () =>
@@ -38,7 +37,8 @@ class TypstHandler implements FormatHandler {
     _inputFormat: FileFormat,
     outputFormat: FileFormat,
   ): Promise<FileData[]> {
-    if (!this.ready || !this.$typst) throw new InitializationError("Handler not initialized.");
+    if (!this.ready || !this.$typst)
+      throw new InitializationError("Handler not initialized.");
 
     const outputFiles: FileData[] = [];
 
@@ -67,4 +67,3 @@ class TypstHandler implements FormatHandler {
 }
 
 export default TypstHandler;
-

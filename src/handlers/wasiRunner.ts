@@ -2,10 +2,15 @@
 
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
-import { WASI, File, OpenFile, ConsoleStdout, PreopenDirectory } from "@bjorn3/browser_wasi_shim";
+import {
+  WASI,
+  File,
+  OpenFile,
+  ConsoleStdout,
+  PreopenDirectory,
+} from "@bjorn3/browser_wasi_shim";
 
 class wasiRunnerHandler implements FormatHandler {
-
   public name: string = "wasiRunner";
   public supportedFormats: FileFormat[] = [
     {
@@ -19,18 +24,18 @@ class wasiRunnerHandler implements FormatHandler {
       category: Category.CODE,
       lossless: true,
     },
-    CommonFormats.TEXT.builder("txt").allowTo()
+    CommonFormats.TEXT.builder("txt").allowTo(),
   ];
   public ready: boolean = false;
 
-  async init () {
+  async init() {
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
     for (const inputFile of inputFiles) {
@@ -43,19 +48,18 @@ class wasiRunnerHandler implements FormatHandler {
       let wasi = new WASI([inputFile.name], [], fds);
 
       let wasm = await WebAssembly.compile(new Uint8Array(inputFile.bytes));
-      let inst = await WebAssembly.instantiate(wasm, {
-        "wasi_snapshot_preview1": wasi.wasiImport,
-      }) as any;
+      let inst = (await WebAssembly.instantiate(wasm, {
+        wasi_snapshot_preview1: wasi.wasiImport,
+      })) as any;
       wasi.start(inst);
 
       outputFiles.push({
         name: inputFile.name.replace(/\.[^.]+$/, "") + `.txt`,
-        bytes: new Uint8Array(output)
-      })
+        bytes: new Uint8Array(output),
+      });
     }
     return outputFiles;
   }
-
 }
 
 export default wasiRunnerHandler;

@@ -3,11 +3,16 @@ class PriorityQueue<T extends object> {
   private _size: number = 0;
   private _comparator: ((val: T, parent: T) => number) | null;
 
-  constructor(initialCapacity?: number, comparator?: (val: T, parent: T) => number) {
+  constructor(
+    initialCapacity?: number,
+    comparator?: (val: T, parent: T) => number,
+  ) {
     const cap = initialCapacity ?? 11;
     const com = comparator ?? null;
     if (cap < 1) {
-      throw new RangeError('initial capacity must be greater than or equal to 1');
+      throw new RangeError(
+        "initial capacity must be greater than or equal to 1",
+      );
     }
     this._queue = new Array<T>(cap);
     this._comparator = com;
@@ -19,7 +24,7 @@ class PriorityQueue<T extends object> {
     const newCapacity =
       oldCapacity + (oldCapacity < 64 ? oldCapacity + 2 : oldCapacity >> 1);
     if (!Number.isSafeInteger(newCapacity)) {
-      throw new RangeError('OOM: new capacity not a safe integer');
+      throw new RangeError("OOM: new capacity not a safe integer");
     }
     this._queue.length = newCapacity;
   }
@@ -190,9 +195,9 @@ class PriorityQueue<T extends object> {
       next: () => {
         return {
           done: i == this._size,
-          value: <T>this._queue[i++]
+          value: <T>this._queue[i++],
         };
-      }
+      },
     };
   }
 }

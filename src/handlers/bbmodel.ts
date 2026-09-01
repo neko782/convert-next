@@ -48,18 +48,31 @@ interface BBModelMesh extends BBModelNodeBase {
 
 type BBModelElement = BBModelCube | BBModelMesh;
 
-const cubeFaces: BBModelCubeFace[] = ["east", "west", "up", "down", "south", "north"];
+const cubeFaces: BBModelCubeFace[] = [
+  "east",
+  "west",
+  "up",
+  "down",
+  "south",
+  "north",
+];
 
 function isNodeVisible(node: BBModelNodeBase) {
   return node.export !== false && node.visibility !== false;
 }
 
 function isCubeElement(element: BBModelElement): element is BBModelCube {
-  return Array.isArray((element as BBModelCube).from) && Array.isArray((element as BBModelCube).to);
+  return (
+    Array.isArray((element as BBModelCube).from) &&
+    Array.isArray((element as BBModelCube).to)
+  );
 }
 
 function isMeshElement(element: BBModelElement): element is BBModelMesh {
-  return typeof (element as BBModelMesh).vertices === "object" && (element as BBModelMesh).vertices !== null;
+  return (
+    typeof (element as BBModelMesh).vertices === "object" &&
+    (element as BBModelMesh).vertices !== null
+  );
 }
 
 function toVector3(input?: number[]) {
@@ -71,18 +84,22 @@ function toEuler(input?: number[]) {
     THREE.MathUtils.degToRad(input?.[0] ?? 0),
     THREE.MathUtils.degToRad(input?.[1] ?? 0),
     THREE.MathUtils.degToRad(input?.[2] ?? 0),
-    "XYZ"
+    "XYZ",
   );
 }
 
 function createPivotMatrix(origin?: number[], rotation?: number[]) {
   const pivot = toVector3(origin);
-  const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(toEuler(rotation));
+  const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(
+    toEuler(rotation),
+  );
 
   return new THREE.Matrix4()
     .makeTranslation(pivot.x, pivot.y, pivot.z)
     .multiply(rotationMatrix)
-    .multiply(new THREE.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z));
+    .multiply(
+      new THREE.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z),
+    );
 }
 
 function createGroupObject(group: BBModelGroup) {
@@ -119,11 +136,7 @@ function createCubeGeometry(element: BBModelCube) {
   }
 
   geometry.setIndex(visibleIndices);
-  geometry.translate(
-    (minX + maxX) / 2,
-    (minY + maxY) / 2,
-    (minZ + maxZ) / 2
-  );
+  geometry.translate((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
   geometry.applyMatrix4(createPivotMatrix(element.origin, element.rotation));
 
   return geometry;
@@ -161,7 +174,11 @@ function createMeshGeometry(element: BBModelMesh) {
     }
 
     for (let i = 1; i < faceVertexIndices.length - 1; i++) {
-      indices.push(faceVertexIndices[0], faceVertexIndices[i], faceVertexIndices[i + 1]);
+      indices.push(
+        faceVertexIndices[0],
+        faceVertexIndices[i],
+        faceVertexIndices[i + 1],
+      );
     }
   }
 
@@ -170,7 +187,10 @@ function createMeshGeometry(element: BBModelMesh) {
   }
 
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
   geometry.setIndex(indices);
   geometry.applyMatrix4(createPivotMatrix(element.origin, element.rotation));
   geometry.computeVertexNormals();
@@ -196,8 +216,16 @@ function createElementObject(element: BBModelElement) {
 
 export function bbmodelToObject(model: BBModel) {
   const root = new THREE.Group();
-  const groupsByUuid = new Map((model.groups ?? []).flatMap(group => group.uuid ? [[group.uuid, group] as const] : []));
-  const elementsByUuid = new Map((model.elements ?? []).flatMap(element => element.uuid ? [[element.uuid, element] as const] : []));
+  const groupsByUuid = new Map(
+    (model.groups ?? []).flatMap((group) =>
+      group.uuid ? [[group.uuid, group] as const] : [],
+    ),
+  );
+  const elementsByUuid = new Map(
+    (model.elements ?? []).flatMap((element) =>
+      element.uuid ? [[element.uuid, element] as const] : [],
+    ),
+  );
   const attachedGroups = new Set<string>();
   const attachedElements = new Set<string>();
 
@@ -218,11 +246,14 @@ export function bbmodelToObject(model: BBModel) {
 
     if (Array.isArray(entry.children)) {
       const group = entry.uuid ? groupsByUuid.get(entry.uuid) : undefined;
-      attachGroup({
-        ...group,
-        ...entry,
-        children: entry.children
-      }, parent);
+      attachGroup(
+        {
+          ...group,
+          ...entry,
+          children: entry.children,
+        },
+        parent,
+      );
       return;
     }
 
@@ -277,7 +308,8 @@ export function bbmodelToObject(model: BBModel) {
 }
 
 export function bbmodelToObj(input: string | BBModel) {
-  const model = typeof input === "string" ? JSON.parse(input) as BBModel : input;
+  const model =
+    typeof input === "string" ? (JSON.parse(input) as BBModel) : input;
   const exporter = new OBJExporter();
   return exporter.parse(bbmodelToObject(model));
 }
@@ -303,7 +335,7 @@ class bbmodelHandler implements FormatHandler {
       .withExt("bbmodel")
       .withCategory("model")
       .allowFrom(true)
-      .allowTo(false)
+      .allowTo(false),
   ];
 
   async init() {
@@ -313,13 +345,13 @@ class bbmodelHandler implements FormatHandler {
   async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     if (inputFormat.internal !== "bbmodel" || outputFormat.internal !== "obj") {
       throw new Error("Invalid input/output format.");
     }
 
-    return inputFiles.map(file => {
+    return inputFiles.map((file) => {
       const baseName = file.name.replace(/\.[^.]+$/u, "");
       const text = new TextDecoder().decode(file.bytes);
       const bytes = new TextEncoder().encode(bbmodelToObj(text));

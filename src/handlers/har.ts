@@ -4,25 +4,23 @@ import CommonFormats, { Category } from "src/CommonFormats.ts";
 import JSZip from "jszip";
 
 const harFormat = new FormatDefinition(
-    "HTTP Archive",
-    "har",
-    "har",
-    "application/har+json",
-    Category.ARCHIVE
+  "HTTP Archive",
+  "har",
+  "har",
+  "application/har+json",
+  Category.ARCHIVE,
 );
 
 class harHandler implements FormatHandler {
-
   public name: string = "har";
   public ready: boolean = true;
 
   public supportedFormats?: FileFormat[] = [
     harFormat.builder("har").allowFrom(),
-    CommonFormats.ZIP.builder("zip").allowTo()
+    CommonFormats.ZIP.builder("zip").allowTo(),
   ];
 
-  async init () {
-  }
+  async init() {}
 
   private base64ToUint8Array(base64: string): Uint8Array {
     const binaryString = atob(base64);
@@ -51,8 +49,11 @@ class harHandler implements FormatHandler {
       const url = new URL(entry.request.url);
       let pathName = url.host + url.pathname;
       const fileName = pathName.split("/").at(-1)!;
-      if (entry.response.content.mimeType?.includes("text/html") && !fileName.endsWith(".html")) {
-        if (pathName[pathName.length-1] !== "/") pathName += "/";
+      if (
+        entry.response.content.mimeType?.includes("text/html") &&
+        !fileName.endsWith(".html")
+      ) {
+        if (pathName[pathName.length - 1] !== "/") pathName += "/";
         pathName += "index.html";
       }
 
@@ -71,14 +72,14 @@ class harHandler implements FormatHandler {
     newName += ".zip";
     return {
       name: newName,
-      bytes: await zip.generateAsync({ type: "uint8array" })
+      bytes: await zip.generateAsync({ type: "uint8array" }),
     };
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
     for (const inputFile of inputFiles) {
@@ -86,7 +87,6 @@ class harHandler implements FormatHandler {
     }
     return outputFiles;
   }
-
 }
 
 export default harHandler;

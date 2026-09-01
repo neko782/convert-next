@@ -7,7 +7,6 @@ import parseXLSX from "./envelope/parseXLSX.js";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 
 class envelopeHandler implements FormatHandler {
-
   public name: string = "envelope";
 
   public supportedFormats: FileFormat[] = [
@@ -24,7 +23,7 @@ class envelopeHandler implements FormatHandler {
       to: false,
       internal: "odt",
       category: Category.DOCUMENT,
-      lossless: false
+      lossless: false,
     },
     {
       name: "OpenDocument Presentation",
@@ -35,7 +34,7 @@ class envelopeHandler implements FormatHandler {
       to: false,
       internal: "odp",
       category: Category.PRESENTATION,
-      lossless: false
+      lossless: false,
     },
     {
       name: "OpenDocument Spreadsheet",
@@ -46,35 +45,52 @@ class envelopeHandler implements FormatHandler {
       to: false,
       internal: "ods",
       category: Category.SPREADSHEET,
-      lossless: false
+      lossless: false,
     },
     // Technically not "lossless", but it's about as close as we'll ever get
-    CommonFormats.HTML.supported("html", false, true, true)
+    CommonFormats.HTML.supported("html", false, true, true),
   ];
 
   public ready: boolean = true;
 
-  async init () {
+  async init() {
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
-
-    if (outputFormat.internal !== "html") throw new TypeError(`Unsupported output format: ${outputFormat.internal}`);
+    if (outputFormat.internal !== "html")
+      throw new TypeError(
+        `Unsupported output format: ${outputFormat.internal}`,
+      );
 
     let parser: (bytes: Uint8Array) => Promise<string>;
     switch (inputFormat.internal) {
-      case "odt": parser = parseODT; break;
-      case "odp": parser = parseODP; break;
-      case "ods": parser = parseODS; break;
-      case "docx": parser = parseDOCX; break;
-      case "pptx": parser = parsePPTX; break;
-      case "xlsx": parser = parseXLSX; break;
-      default: throw new TypeError(`Unsupported input format: ${inputFormat.internal}`);
+      case "odt":
+        parser = parseODT;
+        break;
+      case "odp":
+        parser = parseODP;
+        break;
+      case "ods":
+        parser = parseODS;
+        break;
+      case "docx":
+        parser = parseDOCX;
+        break;
+      case "pptx":
+        parser = parsePPTX;
+        break;
+      case "xlsx":
+        parser = parseXLSX;
+        break;
+      default:
+        throw new TypeError(
+          `Unsupported input format: ${inputFormat.internal}`,
+        );
     }
 
     const outputFiles: FileData[] = [];
@@ -92,9 +108,7 @@ class envelopeHandler implements FormatHandler {
     }
 
     return outputFiles;
-
   }
-
 }
 
 export default envelopeHandler;

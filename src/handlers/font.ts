@@ -1,18 +1,18 @@
 import { Font, Glyph, Path, parse } from "opentype.js";
 import { SVGPathData } from "svg-pathdata";
-import { compress, decompress} from 'woff2-encoder';
+import { compress, decompress } from "woff2-encoder";
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
-import CommonFormats from 'src/CommonFormats.ts';
+import CommonFormats from "src/CommonFormats.ts";
 
 function escapeHtml(str: string) {
   const map = new Map<string, string>();
   map.set("&", "&amp;");
   map.set("<", "&lt;");
   map.set(">", "&gt;");
-  map.set("\"", "&quot;");
+  map.set('"', "&quot;");
   map.set("'", "&apos;");
   map.set("\n", "&#x0A;");
-  return str.replace(/[&<>"'\n]/g, match => map.get(match)!);
+  return str.replace(/[&<>"'\n]/g, (match) => map.get(match)!);
 }
 
 function sfntToSvg(inputFile: FileData, encoder: TextEncoder) {
@@ -27,30 +27,34 @@ function sfntToSvg(inputFile: FileData, encoder: TextEncoder) {
 
   for (let i = 0; i < font.glyphs.length; i++) {
     const glyph = font.glyphs.get(i);
-    if (!glyph || !glyph.unicode)
-      continue;
+    if (!glyph || !glyph.unicode) continue;
 
     const path = glyph.getPath(0, 0, unitsPerEm);
     // flip Y axis, since svg fonts use a different coordinate system than ttf/otf
-    path.commands.forEach(cmd => {
-      if ("y" in cmd)
-        cmd.y = -cmd.y;
-      if ("y1" in cmd)
-        cmd.y1 = -cmd.y1;
-      if ("y2" in cmd)
-        cmd.y2 = -cmd.y2;
+    path.commands.forEach((cmd) => {
+      if ("y" in cmd) cmd.y = -cmd.y;
+      if ("y1" in cmd) cmd.y1 = -cmd.y1;
+      if ("y2" in cmd) cmd.y2 = -cmd.y2;
     });
     const d = path.toPathData(5);
-    glyphElements.push(`<glyph unicode="${escapeHtml(String.fromCharCode(glyph.unicode))}" glyph-name="${glyph.name || ""}" horiz-adv-x="${glyph.advanceWidth}" d="${d}"/>`);
+    glyphElements.push(
+      `<glyph unicode="${escapeHtml(String.fromCharCode(glyph.unicode))}" glyph-name="${glyph.name || ""}" horiz-adv-x="${glyph.advanceWidth}" d="${d}"/>`,
+    );
 
     // alphabetStringWidth = width of "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz"
-    if (glyph.unicode === 32 || glyph.unicode >= 65 && glyph.unicode <= 90 || glyph.unicode >= 97 && glyph.unicode <= 122) {
-      alphabetStringWidth += glyph.advanceWidth ? glyph.advanceWidth : unitsPerEm;
+    if (
+      glyph.unicode === 32 ||
+      (glyph.unicode >= 65 && glyph.unicode <= 90) ||
+      (glyph.unicode >= 97 && glyph.unicode <= 122)
+    ) {
+      alphabetStringWidth += glyph.advanceWidth
+        ? glyph.advanceWidth
+        : unitsPerEm;
     }
   }
 
   // write svg font data & give a little demonstration of the font so that the SVG image isnt empty (and thus can [kind-of] be converted to things such as png, jpeg, etc)
-  const svgFont = `<svg xmlns="http://www.w3.org/2000/svg" width="${alphabetStringWidth / unitsPerEm * 2 + 4}em" height="10em">
+  const svgFont = `<svg xmlns="http://www.w3.org/2000/svg" width="${(alphabetStringWidth / unitsPerEm) * 2 + 4}em" height="10em">
   <defs>
     <font id="${escapeHtml(font.names.fullName?.en || "ConvertedFont")}"
         horiz-adv-x="${unitsPerEm}">
@@ -83,7 +87,7 @@ function sfntToSvg(inputFile: FileData, encoder: TextEncoder) {
     0123456789 !@#$%^&amp;*() -=_+[]{};&apos;:&quot;,./&lt;&gt;?\\|\`~
   </text>
 </svg>`;
-      
+
   const name = inputFile.name.split(".").slice(0, -1).join(".") + ".svg";
   const bytes = encoder.encode(svgFont);
 
@@ -124,13 +128,15 @@ function svgPathToOpenTypePath(d: string): Path {
 
 function svgToOtf(inputFile: FileData, decoder: TextDecoder) {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(decoder.decode(inputFile.bytes), "image/svg+xml");
+  const doc = parser.parseFromString(
+    decoder.decode(inputFile.bytes),
+    "image/svg+xml",
+  );
 
   const fontFace = doc.querySelector("font-face");
   const fontEl = doc.querySelector("font");
 
-  if (!fontFace || !fontEl)
-    throw new Error("Invalid SVG font format");
+  if (!fontFace || !fontEl) throw new Error("Invalid SVG font format");
 
   const unitsPerEm = Number(fontFace.getAttribute("units-per-em")) || 1000;
   const ascent = Number(fontFace.getAttribute("ascent")) || 800;
@@ -145,23 +151,20 @@ function svgToOtf(inputFile: FileData, decoder: TextDecoder) {
       name: ".notdef",
       unicode: undefined,
       advanceWidth: unitsPerEm / 2,
-      path: new Path()
-    })
+      path: new Path(),
+    }),
   );
 
   for (const node of glyphNodes) {
     const unicodeAttr = node.getAttribute("unicode");
     const d = node.getAttribute("d");
 
-    if (!unicodeAttr || !d)
-      continue;
+    if (!unicodeAttr || !d) continue;
 
     const unicode = unicodeAttr.codePointAt(0);
-    if (!unicode)
-      continue;
+    if (!unicode) continue;
 
-    const advanceWidth =
-      Number(node.getAttribute("horiz-adv-x")) || unitsPerEm;
+    const advanceWidth = Number(node.getAttribute("horiz-adv-x")) || unitsPerEm;
 
     const path = svgPathToOpenTypePath(d);
     const glyphName = node.getAttribute("glyph-name");
@@ -171,8 +174,8 @@ function svgToOtf(inputFile: FileData, decoder: TextDecoder) {
         name: glyphName ?? `uni${unicode.toString(16).toUpperCase()}`,
         unicode,
         advanceWidth,
-        path
-      })
+        path,
+      }),
     );
   }
 
@@ -182,7 +185,7 @@ function svgToOtf(inputFile: FileData, decoder: TextDecoder) {
     unitsPerEm,
     ascender: ascent,
     descender: descent,
-    glyphs
+    glyphs,
   });
 
   const bytes = new Uint8Array(font.toArrayBuffer());
@@ -208,12 +211,16 @@ async function sfntToWoff2(inputFile: FileData): Promise<FileData> {
 
   const bytes = await compress(sfnt);
 
-  const name =inputFile.name.split(".").slice(0, -1).join(".") + ".woff2";
+  const name = inputFile.name.split(".").slice(0, -1).join(".") + ".woff2";
 
   return { bytes, name };
 }
 
-async function normalizeToSfnt(inputFile: FileData, inputFormat: FileFormat, decoder: TextDecoder): Promise<Uint8Array> {
+async function normalizeToSfnt(
+  inputFile: FileData,
+  inputFormat: FileFormat,
+  decoder: TextDecoder,
+): Promise<Uint8Array> {
   if (inputFormat.internal === "woff2")
     return await decompress(inputFile.bytes);
   else if (inputFormat.internal === "svg")
@@ -223,7 +230,6 @@ async function normalizeToSfnt(inputFile: FileData, inputFormat: FileFormat, dec
 }
 
 class fontHandler implements FormatHandler {
-
   public name: string = "font";
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
@@ -234,7 +240,7 @@ class fontHandler implements FormatHandler {
       CommonFormats.OTF.builder("otf").allowFrom().allowTo().markLossless(),
       CommonFormats.WOFF.builder("woff").allowFrom().markLossless(),
       CommonFormats.WOFF2.builder("woff2").allowFrom().allowTo().markLossless(),
-      CommonFormats.SVG.builder("svg").allowFrom().allowTo() // svg fonts lose a lot of font metadata, since they only convert the glyphs, so we can't mark it as lossless
+      CommonFormats.SVG.builder("svg").allowFrom().allowTo(), // svg fonts lose a lot of font metadata, since they only convert the glyphs, so we can't mark it as lossless
     ];
     this.ready = true;
   }
@@ -242,16 +248,26 @@ class fontHandler implements FormatHandler {
   async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
-    if (outputFormat.internal !== "svg" && outputFormat.internal !== "otf" && outputFormat.internal !== "woff2") throw new TypeError(`Unsupported output format: ${outputFormat.internal}`);
+    if (
+      outputFormat.internal !== "svg" &&
+      outputFormat.internal !== "otf" &&
+      outputFormat.internal !== "woff2"
+    )
+      throw new TypeError(
+        `Unsupported output format: ${outputFormat.internal}`,
+      );
 
     const outputFiles: FileData[] = [];
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
     for (const inputFile of inputFiles) {
-      const nFile = { ...inputFile, bytes: await normalizeToSfnt(inputFile, inputFormat, decoder) };
+      const nFile = {
+        ...inputFile,
+        bytes: await normalizeToSfnt(inputFile, inputFormat, decoder),
+      };
 
       if (outputFormat.internal === "svg")
         outputFiles.push(sfntToSvg(nFile, encoder));

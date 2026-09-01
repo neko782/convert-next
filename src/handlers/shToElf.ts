@@ -17,7 +17,6 @@ function replaceUint32LE(file: Buffer, from: number, to: number) {
 }
 
 class shToElfHandler implements FormatHandler {
-
   public name: string = "shToElf";
   public supportedFormats: FileFormat[] = [
     CommonFormats.SH.builder("sh").allowFrom().markLossless(),
@@ -30,21 +29,21 @@ class shToElfHandler implements FormatHandler {
       to: true,
       internal: "elf",
       category: Category.CODE,
-    }
+    },
   ];
   public ready: boolean = false;
 
   #binary?: Buffer;
 
-  async init () {
+  async init() {
     this.ready = true;
     this.#binary = Buffer.from(await (await fetch(elfUrl)).bytes());
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
 
@@ -52,20 +51,16 @@ class shToElfHandler implements FormatHandler {
       const binary = Buffer.from(new Uint8Array(this.#binary!));
       replaceUint32LE(binary, 1273991571, inputFile.bytes.length);
 
-      let file = Buffer.concat([
-        binary,
-        inputFile.bytes
-      ]);
+      let file = Buffer.concat([binary, inputFile.bytes]);
 
-      outputFiles.push({ 
+      outputFiles.push({
         name: inputFile.name.replace(/\.[^.]+$/, "") + ".elf",
-        bytes: file
+        bytes: file,
       });
     }
 
     return outputFiles;
   }
-
 }
 
 export default shToElfHandler;

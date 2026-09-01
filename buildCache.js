@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 
-const minify = (process.argv[3] === "--minify");
+const minify = process.argv[3] === "--minify";
 
 const outputPath = process.argv[2] || "cache.json";
 // delete previous cache.json so regeneration is forced to happen
@@ -10,41 +10,39 @@ if (await outputFile.exists()) {
 }
 
 const server = Bun.serve({
-  async fetch (req) {
-    const path = new URL(req.url).pathname.replace("/convert/", "") || "index.html";
+  async fetch(req) {
+    const path =
+      new URL(req.url).pathname.replace("/convert/", "") || "index.html";
     if (path === "cache.json") return new Response("", { status: 204 }); // to better match the real server
     const file = Bun.file(`${__dirname}/dist/${path}`.replaceAll("..", ""));
-    if (!(await file.exists())) return new Response("Not Found", { status: 404 });
+    if (!(await file.exists()))
+      return new Response("Not Found", { status: 404 });
     return new Response(file);
   },
-  port: 8080
+  port: 8080,
 });
 
 const browser = await puppeteer.launch({
   headless: "new",
-  args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
 
 const page = await browser.newPage();
 
 await Promise.all([
-  new Promise(resolve => {
-    page.on("console", msg => {
+  new Promise((resolve) => {
+    page.on("console", (msg) => {
       const text = msg.text();
       if (msg.type() === "error") console.error(text);
       if (text === "Built initial format list.") resolve();
     });
   }),
-  page.goto("http://localhost:8080/convert/index.html")
+  page.goto("http://localhost:8080/convert/index.html"),
 ]);
 
 const cacheJSON = await page.evaluate((minify) => {
   if (minify === true) {
-    return JSON.stringify(
-      JSON.parse(
-        window.printSupportedFormatCache()
-      )
-    );
+    return JSON.stringify(JSON.parse(window.printSupportedFormatCache()));
   }
   return window.printSupportedFormatCache();
 }, minify);

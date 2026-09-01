@@ -1,12 +1,12 @@
 .file-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .file-icon img {
-	display: block;
-	object-fit: contain;
-	opacity: 0.94;
+  display: block;
+  object-fit: contain;
+  opacity: 0.94;
 }

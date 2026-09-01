@@ -8,11 +8,10 @@ import normalizeMimeType from "src/normalizeMimeType.ts";
 import type { ConvertContext } from "src/ui/ProgressStore.js";
 
 const defaultSevenZipOptions = {
-  locateFile: () => "/convert/wasm/7zz.wasm"
-}
+  locateFile: () => "/convert/wasm/7zz.wasm",
+};
 
 class sevenZipHandler implements FormatHandler {
-
   public name: string = "sevenZip";
   public supportedFormats: FileFormat[] = [];
   public ready: boolean = false;
@@ -21,7 +20,7 @@ class sevenZipHandler implements FormatHandler {
 
   #tarCompressedFormats: string[] = [];
 
-  async init () {
+  async init() {
     this.supportedFormats = [];
     this.#tarCompressedFormats = [];
 
@@ -45,22 +44,24 @@ class sevenZipHandler implements FormatHandler {
     // this will totally break in future 7z versions but its the only way
     for (const formatLine of formatLines) {
       // 7zz i gives more than 1 extension, but i dont think we will
-      // need those as they are mostly aliases and thats renamehandler's job. 
+      // need those as they are mostly aliases and thats renamehandler's job.
       // also we cant faithfully parse more than 1 extension because there is no
       // way to know where extensions stop and weird signature stuff begins
       const [flags, name, extension, ...extra] = formatLine.trim().split(/ +/);
 
       if (name === "Hash") continue;
-      const mimeType = normalizeMimeType(mime.getType(extension) || `application/${extension}`);
+      const mimeType = normalizeMimeType(
+        mime.getType(extension) || `application/${extension}`,
+      );
       let displayName = `${name} archive`;
       let format = extension;
-    
-      if (extra.includes("(.tar)")) { 
+
+      if (extra.includes("(.tar)")) {
         // compressed formats will be only tar for now
-        this.#tarCompressedFormats.push(name); 
+        this.#tarCompressedFormats.push(name);
         displayName = `${name} compressed tar archive`;
         format = `tar.${extension}`;
-      } 
+      }
 
       this.supportedFormats.push({
         name: displayName,
@@ -75,35 +76,45 @@ class sevenZipHandler implements FormatHandler {
       });
     }
 
-    // push zip and tar up the list 
+    // push zip and tar up the list
     const priority = ["tar", "zip"];
     const prioritized = [];
     for (const format of priority) {
-      prioritized.push(this.supportedFormats.find(f => f.internal === format)!);
+      prioritized.push(
+        this.supportedFormats.find((f) => f.internal === format)!,
+      );
     }
     this.supportedFormats = [
       ...prioritized,
-      ...this.supportedFormats.filter(f => !priority.includes(f.internal))
+      ...this.supportedFormats.filter((f) => !priority.includes(f.internal)),
     ];
 
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
     outputFormat: FileFormat,
     args?: string[],
-    ctx?: ConvertContext
+    ctx?: ConvertContext,
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
 
     if (inputFormat.internal === "brarchive") {
-        throw new Error(`sevenZipHandler cannot convert from ${inputFormat.mime}`);
+      throw new Error(
+        `sevenZipHandler cannot convert from ${inputFormat.mime}`,
+      );
     }
 
-    if (!this.supportedFormats.some(format => format.to && format.internal === outputFormat.internal)) {
-      throw new TypeError(`sevenZipHandler cannot convert to ${outputFormat.mime}`);
+    if (
+      !this.supportedFormats.some(
+        (format) => format.to && format.internal === outputFormat.internal,
+      )
+    ) {
+      throw new TypeError(
+        `sevenZipHandler cannot convert to ${outputFormat.mime}`,
+      );
     }
 
     let logBuffer = "";
@@ -122,16 +133,22 @@ class sevenZipHandler implements FormatHandler {
       });
     };
 
-    ctx?.log(`Initialising SevenZip for ${inputFormat.name} -> ${outputFormat.name}...`);
+    ctx?.log(
+      `Initialising SevenZip for ${inputFormat.name} -> ${outputFormat.name}...`,
+    );
 
     // handle compressed tars
-    if (this.#tarCompressedFormats.includes(inputFormat.internal) 
-      || this.#tarCompressedFormats.includes(outputFormat.internal)) {
-
+    if (
+      this.#tarCompressedFormats.includes(inputFormat.internal) ||
+      this.#tarCompressedFormats.includes(outputFormat.internal)
+    ) {
       if (outputFormat.internal === "tar") {
         let i = 0;
         for (const inputFile of inputFiles) {
-          ctx?.progress(`Extracting ${inputFile.name}...`, i / inputFiles.length);
+          ctx?.progress(
+            `Extracting ${inputFile.name}...`,
+            i / inputFiles.length,
+          );
           ctx?.log(`Extracting ${inputFile.name}...`);
           const sevenZip = await createSevenZip();
 
@@ -146,7 +163,10 @@ class sevenZipHandler implements FormatHandler {
       } else if (inputFormat.internal === "tar") {
         let i = 0;
         for (const inputFile of inputFiles) {
-          ctx?.progress(`Compressing ${inputFile.name}...`, i / inputFiles.length);
+          ctx?.progress(
+            `Compressing ${inputFile.name}...`,
+            i / inputFiles.length,
+          );
           ctx?.log(`Compressing ${inputFile.name}...`);
           const sevenZip = await createSevenZip();
           sevenZip.FS.writeFile(inputFile.name, inputFile.bytes);
@@ -159,27 +179,43 @@ class sevenZipHandler implements FormatHandler {
           i++;
         }
       } else {
-        throw new TypeError(`sevenZipHandler cannot convert from ${inputFormat.mime} to ${outputFormat.mime}`);
+        throw new TypeError(
+          `sevenZipHandler cannot convert from ${inputFormat.mime} to ${outputFormat.mime}`,
+        );
       }
-      
+
       ctx?.progress("Complete!", 1);
       return outputFiles;
     }
 
-    if (this.supportedFormats.some(format => format.internal === inputFormat.internal)) {
+    if (
+      this.supportedFormats.some(
+        (format) => format.internal === inputFormat.internal,
+      )
+    ) {
       let i = 0;
       for (const inputFile of inputFiles) {
-        ctx?.progress(`Processing archive ${inputFile.name}...`, i / inputFiles.length);
+        ctx?.progress(
+          `Processing archive ${inputFile.name}...`,
+          i / inputFiles.length,
+        );
         ctx?.log(`Processing archive ${inputFile.name}...`);
         const sevenZip = await createSevenZip();
 
         sevenZip.FS.writeFile(inputFile.name, inputFile.bytes);
-        ctx?.log(`Extracting ${inputFile.name} to temporary directory...`, "debug");
+        ctx?.log(
+          `Extracting ${inputFile.name} to temporary directory...`,
+          "debug",
+        );
         sevenZip.callMain(["x", inputFile.name, `-odata`]);
 
-        const name = inputFile.name.replace(/\.[^.]+$/, "") + `.${outputFormat.extension}`;
+        const name =
+          inputFile.name.replace(/\.[^.]+$/, "") + `.${outputFormat.extension}`;
         sevenZip.FS.chdir("data"); // we need to preserve the structure of the input archive
-        ctx?.log(`Re-archiving contents as ${outputFormat.internal}...`, "debug");
+        ctx?.log(
+          `Re-archiving contents as ${outputFormat.internal}...`,
+          "debug",
+        );
         sevenZip.callMain(["a", "../" + name]);
         sevenZip.FS.chdir("..");
 
@@ -189,7 +225,9 @@ class sevenZipHandler implements FormatHandler {
       }
     } else {
       ctx?.progress(`Creating ${outputFormat.name}...`, 0.5);
-      ctx?.log(`Creating ${outputFormat.name} from ${inputFiles.length} files...`);
+      ctx?.log(
+        `Creating ${outputFormat.name} from ${inputFiles.length} files...`,
+      );
       const sevenZip = await createSevenZip();
 
       sevenZip.FS.mkdir("data");
@@ -199,10 +237,11 @@ class sevenZipHandler implements FormatHandler {
         sevenZip.FS.writeFile(inputFile.name, inputFile.bytes);
       }
 
-      const name = inputFiles.length === 1 ? 
-        inputFiles[0].name + `.${outputFormat.extension}`
-        : `archive.${outputFormat.extension}`;
-      
+      const name =
+        inputFiles.length === 1
+          ? inputFiles[0].name + `.${outputFormat.extension}`
+          : `archive.${outputFormat.extension}`;
+
       ctx?.log(`Compiling archive ${name}...`);
       sevenZip.callMain(["a", "../" + name]);
       sevenZip.FS.chdir("..");
@@ -215,7 +254,6 @@ class sevenZipHandler implements FormatHandler {
     ctx?.log(`SevenZip successfully processed ${inputFiles.length} files.`);
     return outputFiles;
   }
-
 }
 
 export default sevenZipHandler;

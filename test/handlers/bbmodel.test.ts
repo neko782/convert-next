@@ -6,8 +6,12 @@ test("bbmodel cube exports to obj geometry", async () => {
   const handler = new bbmodelHandler();
   await handler.init();
 
-  const inputFormat = handler.supportedFormats.find(format => format.internal === "bbmodel");
-  const outputFormat = handler.supportedFormats.find(format => format.internal === "obj");
+  const inputFormat = handler.supportedFormats.find(
+    (format) => format.internal === "bbmodel",
+  );
+  const outputFormat = handler.supportedFormats.find(
+    (format) => format.internal === "obj",
+  );
 
   const input = {
     meta: {
@@ -20,18 +24,20 @@ test("bbmodel cube exports to obj geometry", async () => {
         name: "Cube",
         from: [0, 0, 0],
         to: [2, 2, 2],
-      }
+      },
     ],
-    outliner: ["cube"]
+    outliner: ["cube"],
   };
 
   const [output] = await handler.doConvert(
-    [{
-      name: "cube.bbmodel",
-      bytes: new TextEncoder().encode(JSON.stringify(input))
-    }],
+    [
+      {
+        name: "cube.bbmodel",
+        bytes: new TextEncoder().encode(JSON.stringify(input)),
+      },
+    ],
     inputFormat!,
-    outputFormat!
+    outputFormat!,
   );
 
   const text = new TextDecoder().decode(output.bytes);
@@ -44,8 +50,12 @@ test("bbmodel mesh exports to obj geometry", async () => {
   const handler = new bbmodelHandler();
   await handler.init();
 
-  const inputFormat = handler.supportedFormats.find(format => format.internal === "bbmodel");
-  const outputFormat = handler.supportedFormats.find(format => format.internal === "obj");
+  const inputFormat = handler.supportedFormats.find(
+    (format) => format.internal === "bbmodel",
+  );
+  const outputFormat = handler.supportedFormats.find(
+    (format) => format.internal === "obj",
+  );
 
   const input = {
     meta: {
@@ -63,21 +73,23 @@ test("bbmodel mesh exports to obj geometry", async () => {
         },
         faces: {
           triangle: {
-            vertices: ["a", "b", "c"]
-          }
-        }
-      }
+            vertices: ["a", "b", "c"],
+          },
+        },
+      },
     ],
-    outliner: ["mesh"]
+    outliner: ["mesh"],
   };
 
   const [output] = await handler.doConvert(
-    [{
-      name: "mesh.bbmodel",
-      bytes: new TextEncoder().encode(JSON.stringify(input))
-    }],
+    [
+      {
+        name: "mesh.bbmodel",
+        bytes: new TextEncoder().encode(JSON.stringify(input)),
+      },
+    ],
     inputFormat!,
-    outputFormat!
+    outputFormat!,
   );
 
   const text = new TextDecoder().decode(output.bytes);

@@ -13,14 +13,14 @@ export { CurrentPage, LoadingToolsText, Pages, PopupData } from "./AppState";
 console.log("Rendering UI");
 
 function App() {
-	return (
-		<>
-			{CurrentPage.value === Pages.Conversion && <ConversionPage />}
-			{CurrentPage.value === Pages.Upload && <UploadPage />}
-			<FullPageDropOverlay />
-			<Popup />
-		</>
-	);
+  return (
+    <>
+      {CurrentPage.value === Pages.Conversion && <ConversionPage />}
+      {CurrentPage.value === Pages.Upload && <UploadPage />}
+      <FullPageDropOverlay />
+      <Popup />
+    </>
+  );
 }
 
 render(<App />, document.body);

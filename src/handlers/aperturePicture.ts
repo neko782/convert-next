@@ -1,5 +1,13 @@
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
-import { Magick, MagickFormat, MagickImageCollection, MagickReadSettings, MagickGeometry, QuantizeSettings, DitherMethod } from "@imagemagick/magick-wasm";
+import {
+  Magick,
+  MagickFormat,
+  MagickImageCollection,
+  MagickReadSettings,
+  MagickGeometry,
+  QuantizeSettings,
+  DitherMethod,
+} from "@imagemagick/magick-wasm";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
@@ -9,7 +17,8 @@ class aperturePictureHandler implements FormatHandler {
   public ready: boolean = false;
 
   async init() {
-    this.supportedFormats = [{
+    this.supportedFormats = [
+      {
         name: "Aperture Picture Format",
         format: "apf",
         extension: "apf",
@@ -21,9 +30,9 @@ class aperturePictureHandler implements FormatHandler {
         lossless: true,
       },
       CommonFormats.BMP.builder("bmp")
-      .allowFrom(true)
-      .allowTo(true)
-      .markLossless(),
+        .allowFrom(true)
+        .allowTo(true)
+        .markLossless(),
     ];
     this.ready = true;
   }
@@ -41,7 +50,9 @@ class aperturePictureHandler implements FormatHandler {
         const text = decoder.decode(file.bytes);
         const lines = text.split(/\r?\n/);
         if (lines[0] !== "APERTURE IMAGE FORMAT (c) 1985")
-          throw new BadMagicError(`File is not an APF file as it lacks the magic header. First line of file: ${lines[0]}`);
+          throw new BadMagicError(
+            `File is not an APF file as it lacks the magic header. First line of file: ${lines[0]}`,
+          );
 
         const SK = parseInt(lines[1]);
         const data = lines.slice(2).join("");
@@ -53,18 +64,19 @@ class aperturePictureHandler implements FormatHandler {
           name: file.name.replace(/\.[^/.]+$/, "") + ".bmp",
         });
       }
-    } else if (inputFormat.internal === "bmp") { // we're just throwing science at the wall to see what sticks
+    } else if (inputFormat.internal === "bmp") {
+      // we're just throwing science at the wall to see what sticks
       const w = 320,
         h = 200;
 
       const inputMagickFormat = inputFormat.internal as MagickFormat;
       const inputSettings = new MagickReadSettings();
-      const totalPixels = 320*200;
+      const totalPixels = 320 * 200;
 
       inputSettings.format = inputMagickFormat;
 
       for (const inputFile of inputFiles) {
-        MagickImageCollection.use(fileCollection => {
+        MagickImageCollection.use((fileCollection) => {
           fileCollection.read(inputFile.bytes);
           for (const image of fileCollection) {
             if (!image) break;
@@ -79,23 +91,24 @@ class aperturePictureHandler implements FormatHandler {
 
             let data: Uint8Array<ArrayBufferLike> = new Uint8Array(totalPixels);
 
-            image.getPixels(pixels => {
+            image.getPixels((pixels) => {
               data = pixels.toByteArray(0, 0, 320, 200, "r")!; // since there's no color data, the r is just ignoring the redundant g and b channels
             });
 
             const apf: string = encodeAPF(data)!;
-            const apf_bytes: Uint8Array<ArrayBufferLike> = stringToByteArray(apf)!;
+            const apf_bytes: Uint8Array<ArrayBufferLike> =
+              stringToByteArray(apf)!;
 
             outputFiles.push({
               bytes: apf_bytes,
               name: inputFile.name.replace(/\.[^/.]+$/, "") + ".apf",
             });
-            break
-          };
+            break;
+          }
         });
-      };
+      }
     } else {
-      throw new Error("Input not APF or BMP")
+      throw new Error("Input not APF or BMP");
     }
     return outputFiles;
   }
@@ -104,14 +117,16 @@ class aperturePictureHandler implements FormatHandler {
 function decodeAPF(data: string, SK: number): Uint8Array {
   const w = 320,
     h = 200;
-  if (SK <= 0) throw new RangeError(`Malformed APF file (SK is invalid, <= 0): ${SK}`);
+  if (SK <= 0)
+    throw new RangeError(`Malformed APF file (SK is invalid, <= 0): ${SK}`);
   const bmp = new Uint8Array(w * h);
   let x = 0,
     y = h - 1,
     draw = true, // no idea how this works. the original basic code from the ARG sets draw to false and then inverts it and when i implemented that it kinda worked but the colour was inverted so i removed the draw  = !draw and it refused to draw anything so i just flipped this to true and now it works. i'm way too ill for this
     sn = 0;
 
-  for (let i = 0; i < data.length; i++) { // this loop doesn't exactly match what the original basic script does but it should be cleaner. it went through a lot of iterations while i was trying to fix edge-cases so if anything looks off lmk
+  for (let i = 0; i < data.length; i++) {
+    // this loop doesn't exactly match what the original basic script does but it should be cleaner. it went through a lot of iterations while i was trying to fix edge-cases so if anything looks off lmk
     let r = data.charCodeAt(i) - 32;
     draw = !draw;
 
@@ -141,27 +156,28 @@ function APFarray(data: Uint8Array): Uint8Array {
   let ispalflipped: boolean = false;
 
   for (const b of data) {
-    if (!pal.includes(b)) { // get used colors
-      pal.push(b)
+    if (!pal.includes(b)) {
+      // get used colors
+      pal.push(b);
     }
     if (pal.length === 2) {
-      break
+      break;
     }
   }
   if (pal[0] > pal[1]) {
-    ispalflipped = true
+    ispalflipped = true;
   }
   for (const b of data) {
-    let uh = 0
+    let uh = 0;
     if (ispalflipped) {
-      uh = (1 - pal.indexOf(b)) * 255
+      uh = (1 - pal.indexOf(b)) * 255;
     } else {
-      uh = pal.indexOf(b) * 255
+      uh = pal.indexOf(b) * 255;
     }
-    temparray.push(uh)
+    temparray.push(uh);
     if (temparray.length === 320) {
-      newarray.push(temparray)
-      temparray = [] // clear temp array and add it to the new array
+      newarray.push(temparray);
+      temparray = []; // clear temp array and add it to the new array
     }
   }
 
@@ -170,23 +186,23 @@ function APFarray(data: Uint8Array): Uint8Array {
 }
 
 function encodeAPF(data: Uint8Array): string {
-  let apf: string = "APERTURE IMAGE FORMAT (c) 1985\n1\n" // header and ls of 1
+  let apf: string = "APERTURE IMAGE FORMAT (c) 1985\n1\n"; // header and ls of 1
   const q_data = APFarray(data);
-  console.log(q_data)
-  let runlen = 0
-  let currun = 0
+  console.log(q_data);
+  let runlen = 0;
+  let currun = 0;
 
   for (const p of q_data) {
     if (p === currun) {
-      runlen += 1
+      runlen += 1;
       if (runlen == 94) {
         runlen = 0;
-        apf += "~ "
+        apf += "~ ";
       }
     } else {
-      apf += String.fromCharCode(runlen + 32)
-      currun = p
-      runlen = 1
+      apf += String.fromCharCode(runlen + 32);
+      currun = p;
+      runlen = 1;
     }
   }
   apf += String.fromCharCode(runlen + 32);
@@ -252,7 +268,7 @@ function stringToByteArray(str: string): Uint8Array<ArrayBufferLike> {
   const byteArray: Uint8Array<ArrayBufferLike> = new Uint8Array(str.length);
 
   for (let i = 0; i < str.length; i++) {
-    byteArray[i] = (str.charCodeAt(i));
+    byteArray[i] = str.charCodeAt(i);
   }
 
   return byteArray;

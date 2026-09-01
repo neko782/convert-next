@@ -1,0 +1,15 @@
+node_modules/
+dist/
+release/
+coverage/
+test/resources/
+.github/ISSUE_TEMPLATE/
+
+# Keep top-level handler files formatted, but ignore vendored/nested projects.
+src/handlers/*/
+src/handlers/index.ts
+
+# Binary and generated assets.
+public/material-file-icons/
+*.wasm
+*.bin

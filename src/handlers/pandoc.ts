@@ -6,7 +6,6 @@ import normalizeMimeType from "../normalizeMimeType.ts";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class pandocHandler implements FormatHandler {
-
   static formatNames: Map<string, string> = new Map([
     ["ansi", "ANSI terminal"],
     ["asciidoc", "modern AsciiDoc"],
@@ -156,13 +155,17 @@ class pandocHandler implements FormatHandler {
   public ready: boolean = false;
 
   private query?: (options: any) => Promise<any>;
-  private convert?: (options: any, stdin: any, files: any) => Promise<{
+  private convert?: (
+    options: any,
+    stdin: any,
+    files: any,
+  ) => Promise<{
     stdout: string;
     stderr: string;
     warnings: any;
   }>;
 
-  async init () {
+  async init() {
     const { query, convert } = await import("./pandoc/pandoc.js");
     this.query = query;
     this.convert = convert;
@@ -174,7 +177,7 @@ class pandocHandler implements FormatHandler {
     outputFormats.push("mathml");
 
     const allFormats = new Set(inputFormats);
-    outputFormats.forEach(format => allFormats.add(format));
+    outputFormats.forEach((format) => allFormats.add(format));
 
     this.supportedFormats = [];
     for (const internal of allFormats) {
@@ -187,70 +190,71 @@ class pandocHandler implements FormatHandler {
       if (format === "plain") format = "text";
       const name = pandocHandler.formatNames.get(format) || format;
       const extension = pandocHandler.formatExtensions.get(format) || format;
-      const mimeType = normalizeMimeType(mime.getType(extension) || `text/${format}`);
+      const mimeType = normalizeMimeType(
+        mime.getType(extension) || `text/${format}`,
+      );
       const categories: string[] = [];
       if (format === "xlsx") categories.push("spreadsheet");
       else if (format === "pptx") categories.push("presentation");
-      if (
-        name.toLowerCase().includes("text")
-        || mimeType === "text/plain"
-      ) {
+      if (name.toLowerCase().includes("text") || mimeType === "text/plain") {
         categories.push("text");
       } else {
         categories.push("document");
       }
-      const isOfficeDocument = format === "docx"
-        || format === "xlsx"
-        || format === "pptx"
-        || format === "odt"
-        || format === "ods"
-        || format === "odp";
+      const isOfficeDocument =
+        format === "docx" ||
+        format === "xlsx" ||
+        format === "pptx" ||
+        format === "odt" ||
+        format === "ods" ||
+        format === "odp";
       this.supportedFormats.push({
-        name, format, extension,
+        name,
+        format,
+        extension,
         mime: mimeType,
         from: inputFormats.includes(internal),
         to: outputFormats.includes(internal),
         internal,
         category: categories.length === 1 ? categories[0] : categories,
-        lossless: !isOfficeDocument
+        lossless: !isOfficeDocument,
       });
     }
 
     // Move HTML up, it's the only format that can embed resources
-    const htmlIndex = this.supportedFormats.findIndex(c => c.internal === "html");
+    const htmlIndex = this.supportedFormats.findIndex(
+      (c) => c.internal === "html",
+    );
     const htmlFormat = this.supportedFormats[htmlIndex];
     this.supportedFormats.splice(htmlIndex, 1);
     this.supportedFormats.unshift(htmlFormat);
     // pandoc internal formats is almost always never what the user wants
-    const jsonXmlFormats = this.supportedFormats.filter(c =>
-      c.mime === "application/json"
-      || c.mime === "application/xml"
+    const jsonXmlFormats = this.supportedFormats.filter(
+      (c) => c.mime === "application/json" || c.mime === "application/xml",
     );
-    this.supportedFormats = this.supportedFormats.filter(c =>
-      c.mime !== "application/json"
-      && c.mime !== "application/xml"
+    this.supportedFormats = this.supportedFormats.filter(
+      (c) => c.mime !== "application/json" && c.mime !== "application/xml",
     );
     this.supportedFormats.push(...jsonXmlFormats);
 
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
     outputFormat: FileFormat,
     args?: string[],
-    ctx?: ConvertContext
+    ctx?: ConvertContext,
   ): Promise<FileData[]> {
-    if (
-      !this.ready
-      || !this.query
-      || !this.convert
-    ) throw new InitializationError("Handler not initialized.");
+    if (!this.ready || !this.query || !this.convert)
+      throw new InitializationError("Handler not initialized.");
 
     const outputFiles: FileData[] = [];
 
-    ctx?.log(`Initialising Pandoc for ${inputFormat.name} -> ${outputFormat.name}...`);
+    ctx?.log(
+      `Initialising Pandoc for ${inputFormat.name} -> ${outputFormat.name}...`,
+    );
 
     let i = 0;
     for (const inputFile of inputFiles) {
@@ -259,7 +263,7 @@ class pandocHandler implements FormatHandler {
       ctx?.log(progressMsg);
 
       const files = {
-        [inputFile.name]: new Blob([inputFile.bytes as BlobPart])
+        [inputFile.name]: new Blob([inputFile.bytes as BlobPart]),
       };
 
       let options = {
@@ -269,7 +273,7 @@ class pandocHandler implements FormatHandler {
         "output-file": "output",
         "embed-resources": true,
         "html-math-method": "mathjax",
-      }
+      };
 
       // Set flag for outputting mathml
       if (outputFormat.internal === "mathml") {
@@ -292,13 +296,19 @@ class pandocHandler implements FormatHandler {
 
       const outputBlob = files.output;
       if (!(outputBlob instanceof Blob)) {
-        ctx?.log(`Pandoc failed to produce output for ${inputFile.name}`, "error");
+        ctx?.log(
+          `Pandoc failed to produce output for ${inputFile.name}`,
+          "error",
+        );
         continue;
       }
 
       const arrayBuffer = await outputBlob.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
-      const name = inputFile.name.split(".").slice(0, -1).join(".") + "." + outputFormat.extension;
+      const name =
+        inputFile.name.split(".").slice(0, -1).join(".") +
+        "." +
+        outputFormat.extension;
 
       outputFiles.push({ bytes, name });
       i++;
@@ -309,7 +319,6 @@ class pandocHandler implements FormatHandler {
 
     return outputFiles;
   }
-
 }
 
 export default pandocHandler;

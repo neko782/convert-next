@@ -8,11 +8,16 @@ declare global {
     printSupportedFormatCache: () => string;
     showPopup: (html: string) => void;
     hidePopup: () => void;
-    tryConvertByTraversing: (files: FileData[], from: ConvertPathNode, to: ConvertPathNode, signal?: AbortSignal) => Promise<{
+    tryConvertByTraversing: (
+      files: FileData[],
+      from: ConvertPathNode,
+      to: ConvertPathNode,
+      signal?: AbortSignal,
+    ) => Promise<{
       files: FileData[];
       path: ConvertPathNode[];
     } | null>;
   }
 }
 
-export { };
+export {};

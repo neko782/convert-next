@@ -9,16 +9,20 @@ class batToExeHandler implements FormatHandler {
   public name = "batToExe";
   public supportedFormats = [
     CommonFormats.BATCH.supported("bat", true, false),
-    CommonFormats.EXE.supported("exe", false, true, true) // Lossless because it stores exact input side
+    CommonFormats.EXE.supported("exe", false, true, true), // Lossless because it stores exact input side
   ];
   public ready = false;
 
-  private header: Uint8Array|null = null;
-  private footer: Uint8Array|null = null;
+  private header: Uint8Array | null = null;
+  private footer: Uint8Array | null = null;
 
   async init() {
-    this.header = await fetch(headUrl).then(res => res.arrayBuffer()).then(buf => new Uint8Array(buf));
-    this.footer = await fetch(footUrl).then(res => res.arrayBuffer()).then(buf => new Uint8Array(buf));;
+    this.header = await fetch(headUrl)
+      .then((res) => res.arrayBuffer())
+      .then((buf) => new Uint8Array(buf));
+    this.footer = await fetch(footUrl)
+      .then((res) => res.arrayBuffer())
+      .then((buf) => new Uint8Array(buf));
     this.ready = true;
   }
 
@@ -27,10 +31,10 @@ class batToExeHandler implements FormatHandler {
     inputFormat: FileFormat,
     outputFormat: FileFormat,
   ): Promise<FileData[]> {
-
     const header = this.header;
     const footer = this.footer;
-    if (!this.ready || !header || !footer) throw new InitializationError("Handler not initialized.");
+    if (!this.ready || !header || !footer)
+      throw new InitializationError("Handler not initialized.");
 
     const CONTENT_SIZE = 65824;
     const EXIT_BYTES = new Uint8Array([0x0d, 0x0a, 0x65, 0x78, 0x69, 0x74]); // \r\nexit
@@ -40,14 +44,20 @@ class batToExeHandler implements FormatHandler {
 
     for (const file of inputFiles) {
       if (inputFormat.internal !== "bat") {
-        throw new TypeError(`Unsupported input format: ${inputFormat.internal}`);
+        throw new TypeError(
+          `Unsupported input format: ${inputFormat.internal}`,
+        );
       }
       if (outputFormat.internal !== "exe") {
-        throw new TypeError(`Unsupported output format: ${outputFormat.internal}`);
+        throw new TypeError(
+          `Unsupported output format: ${outputFormat.internal}`,
+        );
       }
 
       if (file.bytes.length + EXIT_BYTES.length > CONTENT_SIZE) {
-        throw new RangeError(`Input too long. Max ${CONTENT_SIZE-EXIT_BYTES.length} bytes.`);
+        throw new RangeError(
+          `Input too long. Max ${CONTENT_SIZE - EXIT_BYTES.length} bytes.`,
+        );
       }
 
       // Build padded content block

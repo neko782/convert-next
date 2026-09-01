@@ -5,21 +5,29 @@ import { goToUploadHome } from "src/main";
 import "./index.css";
 
 interface ConversionHeaderProps {
-	stepLabel?: string;
-	logoDisabled?: boolean;
+  stepLabel?: string;
+  logoDisabled?: boolean;
 }
 
-export default function ConversionHeader({ stepLabel, logoDisabled = false }: ConversionHeaderProps) {
-	return (
-		<header className="conversion-header">
-			<div className="header-left">
-				<Logo showName={true} size={24} onClick={goToUploadHome} disabled={logoDisabled} />
-				{stepLabel && <span className="header-step-label">{stepLabel}</span>}
-			</div>
+export default function ConversionHeader({
+  stepLabel,
+  logoDisabled = false,
+}: ConversionHeaderProps) {
+  return (
+    <header className="conversion-header">
+      <div className="header-left">
+        <Logo
+          showName={true}
+          size={24}
+          onClick={goToUploadHome}
+          disabled={logoDisabled}
+        />
+        {stepLabel && <span className="header-step-label">{stepLabel}</span>}
+      </div>
 
-			<div className="header-right">
-				<AdvancedModeToggle compact={false} />
-			</div>
-		</header>
-	);
+      <div className="header-right">
+        <AdvancedModeToggle compact={false} />
+      </div>
+    </header>
+  );
 }

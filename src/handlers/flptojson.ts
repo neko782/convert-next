@@ -16,11 +16,10 @@ import {
   listSamples,
   listPlugins,
   getFlVersion,
-  getPPQ
+  getPPQ,
 } from "ts-flp";
 
 class flptojsonHandler implements FormatHandler {
-
   public name: string = "flptojson";
 
   public supportedFormats: FileFormat[] = [
@@ -36,23 +35,24 @@ class flptojsonHandler implements FormatHandler {
       lossless: false,
     },
     // Unsure about this, it might be lossless
-    CommonFormats.JSON.supported("json", false, true)
+    CommonFormats.JSON.supported("json", false, true),
   ];
 
   public ready: boolean = true;
 
-  async init () {
+  async init() {
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
-
     if (outputFormat.format !== "json") {
-      throw new TypeError(`Unsupported output format ${outputFormat.format}. Only JSON is supported.`);
+      throw new TypeError(
+        `Unsupported output format ${outputFormat.format}. Only JSON is supported.`,
+      );
     }
 
     const outputFiles: FileData[] = [];
@@ -66,7 +66,9 @@ class flptojsonHandler implements FormatHandler {
         const parsed = parseFlp(buffer);
 
         if (!parsed) {
-            throw new Error("Parser returned null. The file might be corrupted or encrypted.");
+          throw new Error(
+            "Parser returned null. The file might be corrupted or encrypted.",
+          );
         }
 
         const meta = readProjectMeta(parsed);
@@ -86,21 +88,22 @@ class flptojsonHandler implements FormatHandler {
             comments: meta.description || "",
             bpm: meta.bpm || 130,
             version: version,
-            ppq: ppq
+            ppq: ppq,
           },
           stats: {
-            created: timeInfo.creationDate instanceof Date
+            created:
+              timeInfo.creationDate instanceof Date
                 ? timeInfo.creationDate.toISOString()
                 : null,
-            workTimeSeconds: timeInfo.workTimeSeconds || 0
+            workTimeSeconds: timeInfo.workTimeSeconds || 0,
           },
           content: {
-            samples: samples.map(s => s.path),
-            plugins: plugins.map(p => ({
+            samples: samples.map((s) => s.path),
+            plugins: plugins.map((p) => ({
               name: p.name || "Unknown",
-              vendor: p.vendor || "Unknown"
-            }))
-          }
+              vendor: p.vendor || "Unknown",
+            })),
+          },
         };
 
         // JSON encoding
@@ -113,12 +116,14 @@ class flptojsonHandler implements FormatHandler {
 
         outputFiles.push({
           bytes: outputBytes,
-          name: newName
+          name: newName,
         });
-
-      } catch (e: any) { // Error handling
+      } catch (e: any) {
+        // Error handling
         console.error(`[flptojson] Error converting ${inputFile.name}:`, e);
-        throw new Error(`Conversion failed for ${inputFile.name}: ${e.message}`);
+        throw new Error(
+          `Conversion failed for ${inputFile.name}: ${e.message}`,
+        );
       }
     }
 
@@ -126,4 +131,4 @@ class flptojsonHandler implements FormatHandler {
   }
 }
 
-export default flptojsonHandler
+export default flptojsonHandler;

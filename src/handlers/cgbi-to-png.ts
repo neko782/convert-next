@@ -2,7 +2,9 @@ import pako from "pako";
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 
-async function revertCgBIBuffer(input: Uint8Array | ArrayBuffer): Promise<Uint8Array> {
+async function revertCgBIBuffer(
+  input: Uint8Array | ArrayBuffer,
+): Promise<Uint8Array> {
   const buffer = input instanceof Uint8Array ? input : new Uint8Array(input);
 
   const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -43,13 +45,23 @@ async function revertCgBIBuffer(input: Uint8Array | ArrayBuffer): Promise<Uint8A
   };
 
   const ignoreChunkTypes = new Set(["CgBI", "iDOT"]);
-  const chunks: { length: number; type: string; data: Uint8Array; crc: number }[] = [];
+  const chunks: {
+    length: number;
+    type: string;
+    data: Uint8Array;
+    crc: number;
+  }[] = [];
   let offset = 8;
-  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  const view = new DataView(
+    buffer.buffer,
+    buffer.byteOffset,
+    buffer.byteLength,
+  );
 
   let isIphoneCompressed = false;
   let idatCgbiData = new Uint8Array(0);
-  let width = 0, height = 0;
+  let width = 0,
+    height = 0;
 
   while (offset < buffer.length) {
     const length = view.getUint32(offset, false);
@@ -74,7 +86,11 @@ async function revertCgBIBuffer(input: Uint8Array | ArrayBuffer): Promise<Uint8A
     }
 
     if (type === "IHDR") {
-      const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      const dataView = new DataView(
+        data.buffer,
+        data.byteOffset,
+        data.byteLength,
+      );
       width = dataView.getUint32(0, false);
       height = dataView.getUint32(4, false);
     }
@@ -93,9 +109,9 @@ async function revertCgBIBuffer(input: Uint8Array | ArrayBuffer): Promise<Uint8A
         newData[i] = uncompressed[i]; // filter byte
         i++;
         for (let x = 0; x < width; x++) {
-          newData[i]     = uncompressed[i + 2]; // B → R
+          newData[i] = uncompressed[i + 2]; // B → R
           newData[i + 1] = uncompressed[i + 1]; // G
-          newData[i + 2] = uncompressed[i];     // R → B
+          newData[i + 2] = uncompressed[i]; // R → B
           newData[i + 3] = uncompressed[i + 3]; // A
           i += 4;
         }
@@ -110,7 +126,7 @@ async function revertCgBIBuffer(input: Uint8Array | ArrayBuffer): Promise<Uint8A
         length: compressedIdat.length,
         type: "IDAT",
         data: compressedIdat,
-        crc: newCrc
+        crc: newCrc,
       });
     }
 
@@ -155,9 +171,9 @@ class cgbiToPngHandler implements FormatHandler {
       mime: "image/png",
       from: true,
       to: false,
-      internal: "cgbi-png", 
+      internal: "cgbi-png",
       category: Category.IMAGE,
-      lossless: true
+      lossless: true,
     },
     CommonFormats.PNG.supported("png", false, true, true),
   ];
@@ -170,10 +186,15 @@ class cgbiToPngHandler implements FormatHandler {
     inputFiles: FileData[],
     inputFormat: FileFormat,
     outputFormat: FileFormat,
-    _args?: string[]
+    _args?: string[],
   ): Promise<FileData[]> {
-    if (inputFormat.internal !== "cgbi-png" || outputFormat.internal !== "png") {
-      throw new TypeError(`Unsupported conversion: ${inputFormat.internal} → ${outputFormat.internal}`);
+    if (
+      inputFormat.internal !== "cgbi-png" ||
+      outputFormat.internal !== "png"
+    ) {
+      throw new TypeError(
+        `Unsupported conversion: ${inputFormat.internal} → ${outputFormat.internal}`,
+      );
     }
 
     const outputFiles: FileData[] = [];
@@ -181,17 +202,22 @@ class cgbiToPngHandler implements FormatHandler {
     for (const inputFile of inputFiles) {
       try {
         const standardPng = await revertCgBIBuffer(inputFile.bytes);
-        
-        const dotIndex = inputFile.name.lastIndexOf('.');
-        const baseName = dotIndex !== -1 ? inputFile.name.substring(0, dotIndex) : inputFile.name;
+
+        const dotIndex = inputFile.name.lastIndexOf(".");
+        const baseName =
+          dotIndex !== -1
+            ? inputFile.name.substring(0, dotIndex)
+            : inputFile.name;
         const outputName = `${baseName}.${outputFormat.extension}`;
 
         outputFiles.push({
           bytes: standardPng,
-          name: outputName
+          name: outputName,
         });
       } catch (error) {
-        throw new Error(`Failed to convert ${inputFile.name}: ${(error as Error).message}`);
+        throw new Error(
+          `Failed to convert ${inputFile.name}: ${(error as Error).message}`,
+        );
       }
     }
 

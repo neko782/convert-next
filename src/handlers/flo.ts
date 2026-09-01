@@ -104,7 +104,19 @@ async function decodeWithFFmpeg(
   } catch (e) {
     // If probing failed, try interpreting input as raw float32 PCM (f32le) with defaults
     try {
-      await ffmpeg.exec(["-f", "f32le", "-ar", "44100", "-ac", "1", "-i", "infile", "-f", "wav", "out.wav"]);
+      await ffmpeg.exec([
+        "-f",
+        "f32le",
+        "-ar",
+        "44100",
+        "-ac",
+        "1",
+        "-i",
+        "infile",
+        "-f",
+        "wav",
+        "out.wav",
+      ]);
     } catch (e2) {
       await ffmpeg.deleteFile("infile");
       throw e2;
@@ -146,11 +158,16 @@ class floHandler implements FormatHandler {
   #worker?: Worker;
   #workerReady?: Promise<void>;
   #rpcId: number = 1;
-  #pending: Map<number, { resolve: (v: any) => void; reject: (e: any) => void }> = new Map();
+  #pending: Map<
+    number,
+    { resolve: (v: any) => void; reject: (e: any) => void }
+  > = new Map();
 
   async init() {
     try {
-      this.#worker = new Worker(new URL("./flo.worker.ts", import.meta.url), { type: "module" });
+      this.#worker = new Worker(new URL("./flo.worker.ts", import.meta.url), {
+        type: "module",
+      });
       this.#workerReady = new Promise((resolve, reject) => {
         this.#worker!.onmessage = (ev: MessageEvent) => {
           const m = ev.data as any;
@@ -159,18 +176,23 @@ class floHandler implements FormatHandler {
             if (m.type === "error") return reject(m.error);
           }
           // route other messages to pending map
-          if (m && typeof m.id === 'number' && m.id !== 0) {
+          if (m && typeof m.id === "number" && m.id !== 0) {
             const p = this.#pending.get(m.id);
             if (p) {
-              if (m.type === 'decodeResult') p.resolve({ samples: m.samples, sampleRate: m.sampleRate, channels: m.channels });
-              else if (m.type === 'encodeResult') p.resolve(m.bytes);
-              else if (m.type === 'error') p.reject(m.error);
+              if (m.type === "decodeResult")
+                p.resolve({
+                  samples: m.samples,
+                  sampleRate: m.sampleRate,
+                  channels: m.channels,
+                });
+              else if (m.type === "encodeResult") p.resolve(m.bytes);
+              else if (m.type === "error") p.reject(m.error);
               this.#pending.delete(m.id);
             }
           }
         };
         // timeout
-        setTimeout(() => reject('flo worker init timeout'), 15000);
+        setTimeout(() => reject("flo worker init timeout"), 15000);
       });
       await this.#workerReady;
       console.log("floHandler: reflo worker ready");
@@ -188,10 +210,9 @@ class floHandler implements FormatHandler {
         to: true,
         internal: "flo",
         category: Category.AUDIO,
-        lossless: false
+        lossless: false,
       },
-      CommonFormats.WAV.builder("wav")
-        .allowFrom().allowTo().markLossless(),
+      CommonFormats.WAV.builder("wav").allowFrom().allowTo().markLossless(),
       {
         name: "Raw PCM Float32LE",
         format: "f32le",
@@ -201,19 +222,21 @@ class floHandler implements FormatHandler {
         to: true,
         internal: "f32le",
         category: Category.AUDIO,
-        lossless: true
+        lossless: true,
       },
     ];
     this.ready = true;
   }
 
-  private _workerDecode(bytes: Uint8Array): Promise<{ samples: Float32Array; sampleRate: number; channels: number }> {
+  private _workerDecode(
+    bytes: Uint8Array,
+  ): Promise<{ samples: Float32Array; sampleRate: number; channels: number }> {
     return new Promise((resolve, reject) => {
-      if (!this.#worker) return reject('no worker');
+      if (!this.#worker) return reject("no worker");
       const id = this.#rpcId++;
       this.#pending.set(id, { resolve, reject });
       try {
-        this.#worker.postMessage({ id, type: 'decode', bytes }, [bytes.buffer]);
+        this.#worker.postMessage({ id, type: "decode", bytes }, [bytes.buffer]);
       } catch (e) {
         this.#pending.delete(id);
         reject(e);
@@ -221,13 +244,21 @@ class floHandler implements FormatHandler {
     });
   }
 
-  private _workerEncode(samples: Float32Array, sampleRate: number, channels: number, bitDepth: number): Promise<Uint8Array> {
+  private _workerEncode(
+    samples: Float32Array,
+    sampleRate: number,
+    channels: number,
+    bitDepth: number,
+  ): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
-      if (!this.#worker) return reject('no worker');
+      if (!this.#worker) return reject("no worker");
       const id = this.#rpcId++;
       this.#pending.set(id, { resolve, reject });
       try {
-        this.#worker.postMessage({ id, type: 'encode', samples, sampleRate, channels, bitDepth }, [samples.buffer]);
+        this.#worker.postMessage(
+          { id, type: "encode", samples, sampleRate, channels, bitDepth },
+          [samples.buffer],
+        );
       } catch (e) {
         this.#pending.delete(id);
         reject(e);
@@ -241,10 +272,11 @@ class floHandler implements FormatHandler {
     outputFormat: FileFormat,
     args?: string[],
   ): Promise<FileData[]> {
-    if (!inputFiles || inputFiles.length === 0) throw new RangeError("No input files.");
+    if (!inputFiles || inputFiles.length === 0)
+      throw new RangeError("No input files.");
     const file = inputFiles[0];
     const baseName = (() => {
-      const idx = file.name.lastIndexOf('.');
+      const idx = file.name.lastIndexOf(".");
       return idx > 0 ? file.name.slice(0, idx) : file.name;
     })();
 
@@ -260,7 +292,7 @@ class floHandler implements FormatHandler {
         sampleRate = res.sampleRate;
         channels = res.channels;
       } else {
-        const mod = await import('@flo-audio/reflo');
+        const mod = await import("@flo-audio/reflo");
         samples = mod.decode(bytes);
         const info = mod.get_flo_file_info(bytes);
         sampleRate = info.sample_rate;
@@ -289,7 +321,9 @@ class floHandler implements FormatHandler {
         return [{ bytes: new Uint8Array(file.bytes), name: file.name }];
       }
 
-      throw new TypeError(`floHandler: unsupported target ${outputFormat.format}`);
+      throw new TypeError(
+        `floHandler: unsupported target ${outputFormat.format}`,
+      );
     }
 
     // Inputs -> FLO
@@ -309,10 +343,21 @@ class floHandler implements FormatHandler {
       // (samples, sample_rate, channels, bit_depth, metadata)
       let floBytes: Uint8Array;
       if (this.#worker) {
-        floBytes = await this._workerEncode(decoded.samples, decoded.sampleRate, decoded.channels, 32);
+        floBytes = await this._workerEncode(
+          decoded.samples,
+          decoded.sampleRate,
+          decoded.channels,
+          32,
+        );
       } else {
-        const mod = await import('@flo-audio/reflo');
-        floBytes = mod.encode(decoded.samples, decoded.sampleRate, decoded.channels, 32, null);
+        const mod = await import("@flo-audio/reflo");
+        floBytes = mod.encode(
+          decoded.samples,
+          decoded.sampleRate,
+          decoded.channels,
+          32,
+          null,
+        );
       }
       return [{ bytes: new Uint8Array(floBytes), name: baseName + ".flo" }];
     }
@@ -326,10 +371,10 @@ class floHandler implements FormatHandler {
       return [{ bytes: new Uint8Array(file.bytes), name: file.name }];
     }
 
-    throw new TypeError(`floHandler: unsupported conversion ${inputFormat.format} -> ${outputFormat.format}`);
+    throw new TypeError(
+      `floHandler: unsupported conversion ${inputFormat.format} -> ${outputFormat.format}`,
+    );
   }
 }
 
 export default floHandler;
-
-

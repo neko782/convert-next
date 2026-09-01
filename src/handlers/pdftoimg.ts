@@ -3,7 +3,7 @@ import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 
 import { pdfToImg } from "pdftoimg-js/browser";
 
-function base64ToBytes (base64: string) {
+function base64ToBytes(base64: string) {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
@@ -13,7 +13,6 @@ function base64ToBytes (base64: string) {
 }
 
 class pdftoimgHandler implements FormatHandler {
-
   public name: string = "pdftoimg";
 
   public supportedFormats: FileFormat[] = [
@@ -24,33 +23,33 @@ class pdftoimgHandler implements FormatHandler {
 
   public ready: boolean = true;
 
-  async init () {
+  async init() {
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
-
-    if (
-      outputFormat.format !== "png"
-      && outputFormat.format !== "jpeg"
-    ) throw new TypeError(`Unsupported output format: ${outputFormat.internal}`);
+    if (outputFormat.format !== "png" && outputFormat.format !== "jpeg")
+      throw new TypeError(
+        `Unsupported output format: ${outputFormat.internal}`,
+      );
 
     const outputFiles: FileData[] = [];
 
     for (const inputFile of inputFiles) {
-
-      const blob = new Blob([inputFile.bytes as BlobPart], { type: inputFormat.mime });
+      const blob = new Blob([inputFile.bytes as BlobPart], {
+        type: inputFormat.mime,
+      });
       const url = URL.createObjectURL(blob);
 
       const imgType = outputFormat.format === "jpeg" ? "jpg" : "png";
 
       const images = await pdfToImg(url, {
         imgType: imgType,
-        pages: "all"
+        pages: "all",
       });
 
       const baseName = inputFile.name.split(".").slice(0, -1).join(".");
@@ -61,13 +60,10 @@ class pdftoimgHandler implements FormatHandler {
         const name = `${baseName}_${i}.${outputFormat.extension}`;
         outputFiles.push({ bytes, name });
       }
-
     }
 
     return outputFiles;
-
   }
-
 }
 
 export default pdftoimgHandler;

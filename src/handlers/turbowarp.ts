@@ -2,15 +2,20 @@
 
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
-import { Packager, largeAssets, downloadProject } from "turbowarp-packager-browser";
+import {
+  Packager,
+  largeAssets,
+  downloadProject,
+} from "turbowarp-packager-browser";
 
 // patching some assets
-largeAssets.scaffolding.src = "/convert/js/turbowarp-scaffolding/scaffolding-full.js";
-largeAssets["scaffolding-min"].src = "/convert/js/turbowarp-scaffolding/scaffolding-min.js";
+largeAssets.scaffolding.src =
+  "/convert/js/turbowarp-scaffolding/scaffolding-full.js";
+largeAssets["scaffolding-min"].src =
+  "/convert/js/turbowarp-scaffolding/scaffolding-min.js";
 largeAssets.addons.src = "/convert/js/turbowarp-scaffolding/addons.js";
 
 class turbowarpHandler implements FormatHandler {
-
   public name: string = "turbowarp";
   public supportedFormats: FileFormat[] = [
     {
@@ -24,24 +29,21 @@ class turbowarpHandler implements FormatHandler {
       category: Category.ARCHIVE,
       lossless: true, // all project data is in the html
     },
-    CommonFormats.HTML.builder("html")
-      .allowTo()
-      .allowFrom()
-      .markLossless()
+    CommonFormats.HTML.builder("html").allowTo().allowFrom().markLossless(),
   ];
   public ready: boolean = false;
 
   private unpackager?: any;
 
-  async init () {
+  async init() {
     this.unpackager = await import("./turbowarp/unpackager/unpackager.js");
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
     for (const inputFile of inputFiles) {
@@ -56,22 +58,23 @@ class turbowarpHandler implements FormatHandler {
 
         outputFiles.push({
           name: inputFile.name.replace(/\.sb3$/, ".html"),
-          bytes
+          bytes,
         });
       } else if (inputFormat.internal === "html") {
         const data = (await this.unpackager(inputFile.bytes)).data;
         const bytes = new Uint8Array(data);
         outputFiles.push({
           name: inputFile.name.replace(/\.html$/, ".sb3"),
-          bytes
+          bytes,
         });
       } else {
-        throw new Error(`turbowarpHandler cannot convert from ${inputFormat.mime} to ${outputFormat.mime}`);
+        throw new Error(
+          `turbowarpHandler cannot convert from ${inputFormat.mime} to ${outputFormat.mime}`,
+        );
       }
     }
     return outputFiles;
   }
-
 }
 
 export default turbowarpHandler;

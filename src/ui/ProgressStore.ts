@@ -10,7 +10,10 @@ export interface LogEntry {
 }
 
 export interface ConvertContext {
-  progress: (message: string, value: number | ((prev: number) => number)) => void;
+  progress: (
+    message: string,
+    value: number | ((prev: number) => number),
+  ) => void;
   log: (message: string, level?: LogLevel) => void;
   signal: AbortSignal;
   throwIfAborted: () => void;
@@ -43,19 +46,21 @@ export const ProgressStore = {
     return {
       progress: (msg, val) => {
         this.message.value = msg;
-        const nextVal = typeof val === "function" ? val(this.percent.value) : val;
+        const nextVal =
+          typeof val === "function" ? val(this.percent.value) : val;
         this.percent.value = Math.max(0, Math.min(1, nextVal));
       },
       log: (msg, level = "log") => {
         this.logs.value = [
           ...this.logs.value,
-          { timestamp: Date.now(), plugin: pluginName, message: msg, level }
+          { timestamp: Date.now(), plugin: pluginName, message: msg, level },
         ];
       },
       signal: parentSignal,
       throwIfAborted() {
-        if (parentSignal.aborted) throw new DOMException("Conversion cancelled", "AbortError");
-      }
+        if (parentSignal.aborted)
+          throw new DOMException("Conversion cancelled", "AbortError");
+      },
     };
-  }
+  },
 };

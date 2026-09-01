@@ -1,5 +1,16 @@
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
-import { extractEvents, tableToString, stringToTable, buildMidi, parseRtttl, parseGrubTune, tableToRtttl, tableToGrubTune, pngToMidi, midiToPng } from "./midi/midifilelib.js";
+import {
+  extractEvents,
+  tableToString,
+  stringToTable,
+  buildMidi,
+  parseRtttl,
+  parseGrubTune,
+  tableToRtttl,
+  tableToGrubTune,
+  pngToMidi,
+  midiToPng,
+} from "./midi/midifilelib.js";
 
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
@@ -26,7 +37,8 @@ function loadScript(src: string): Promise<void> {
 }
 
 // Cache the full FluidSynth init so concurrent or repeated calls share one run.
-let midiInitPromise: Promise<{ JSSynth: any; sfontBin: ArrayBuffer }> | null = null;
+let midiInitPromise: Promise<{ JSSynth: any; sfontBin: ArrayBuffer }> | null =
+  null;
 
 function loadFluidSynth(): Promise<{ JSSynth: any; sfontBin: ArrayBuffer }> {
   if (!midiInitPromise) {
@@ -40,17 +52,23 @@ function loadFluidSynth(): Promise<{ JSSynth: any; sfontBin: ArrayBuffer }> {
       // The Emscripten init pattern still works because modules have access to the
       // global scope chain, so "typeof Module != 'undefined'" finds globalThis.Module.
       let fluidModuleResolve!: (mod: unknown) => void;
-      const fluidModuleReady = new Promise<unknown>(r => { fluidModuleResolve = r; });
+      const fluidModuleReady = new Promise<unknown>((r) => {
+        fluidModuleResolve = r;
+      });
       (globalThis as any).Module = {
-        onRuntimeInitialized(this: unknown) { fluidModuleResolve(this); }
+        onRuntimeInitialized(this: unknown) {
+          fluidModuleResolve(this);
+        },
       };
 
-      let fluidSrc = await fetch("/convert/wasm/libfluidsynth-2.4.6.js").then(r => r.text());
+      let fluidSrc = await fetch("/convert/wasm/libfluidsynth-2.4.6.js").then(
+        (r) => r.text(),
+      );
       // In an ES module, "var Module" is hoisted to "undefined", shadowing globalThis.Module.
       // Patch the Emscripten init line so it reads from globalThis explicitly.
       fluidSrc = fluidSrc.replace(
         'var Module=typeof Module!="undefined"?Module:{}',
-        'var Module=globalThis.Module||{}'
+        "var Module=globalThis.Module||{}",
       );
       const blob = new Blob([fluidSrc], { type: "text/javascript" });
       const blobUrl = URL.createObjectURL(blob);
@@ -64,7 +82,9 @@ function loadFluidSynth(): Promise<{ JSSynth: any; sfontBin: ArrayBuffer }> {
       JSSynth.Synthesizer.initializeWithFluidSynthModule(fluidModule);
       await JSSynth.Synthesizer.waitForWasmInitialized();
 
-      const sfontBin = await fetch("/convert/wasm/TimGM6mb.sf2").then(r => r.arrayBuffer());
+      const sfontBin = await fetch("/convert/wasm/TimGM6mb.sf2").then((r) =>
+        r.arrayBuffer(),
+      );
       return { JSSynth, sfontBin };
     })();
   }
@@ -85,14 +105,54 @@ export class midiCodecHandler implements FormatHandler {
 
   async init(): Promise<void> {
     this.supportedFormats.push(
-      { name: "MIDI",          format: "mid",    extension: "mid",    mime: "audio/midi",   from: true,  to: true,  internal: "mid",   category: Category.AUDIO, lossless: true },
-      { name: "RTTTL",         format: "rtttl",  extension: "rtttl",  mime: "audio/rtttl",  from: true,  to: true,  internal: "rtttl", category: Category.TEXT,  lossless: false },
-      { name: "NokRing",       format: "rtttl",  extension: "nokring",mime: "audio/rtttl",  from: true,  to: false, internal: "rtttl", category: Category.TEXT,  lossless: false },
-      { name: "GRUB Init Tune",format: "grub",   extension: "grub",   mime: "text/plain",   from: true,  to: true,  internal: "grub",  category: Category.TEXT,  lossless: false },
+      {
+        name: "MIDI",
+        format: "mid",
+        extension: "mid",
+        mime: "audio/midi",
+        from: true,
+        to: true,
+        internal: "mid",
+        category: Category.AUDIO,
+        lossless: true,
+      },
+      {
+        name: "RTTTL",
+        format: "rtttl",
+        extension: "rtttl",
+        mime: "audio/rtttl",
+        from: true,
+        to: true,
+        internal: "rtttl",
+        category: Category.TEXT,
+        lossless: false,
+      },
+      {
+        name: "NokRing",
+        format: "rtttl",
+        extension: "nokring",
+        mime: "audio/rtttl",
+        from: true,
+        to: false,
+        internal: "rtttl",
+        category: Category.TEXT,
+        lossless: false,
+      },
+      {
+        name: "GRUB Init Tune",
+        format: "grub",
+        extension: "grub",
+        mime: "text/plain",
+        from: true,
+        to: true,
+        internal: "grub",
+        category: Category.TEXT,
+        lossless: false,
+      },
       CommonFormats.TEXT.builder("txt").allowFrom().allowTo().markLossless(),
       // PNG spectrogram -> MIDI (matches meyda's internal="image" so routing picks
       // up the audio->png->mid path automatically)
-      CommonFormats.PNG.builder("png").allowFrom().allowTo()
+      CommonFormats.PNG.builder("png").allowFrom().allowTo(),
     );
     this.ready = true;
   }
@@ -100,7 +160,7 @@ export class midiCodecHandler implements FormatHandler {
   async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     if (!this.ready) throw new InitializationError("Handler not initialized.");
     const outputFiles: FileData[] = [];
@@ -114,77 +174,103 @@ export class midiCodecHandler implements FormatHandler {
 
       if (inputFormat.internal === "png") {
         // PNG spectrogram: decode pixels then extract notes
-        const blob   = new Blob([inputFile.bytes as BlobPart], { type: inputFormat.mime });
-        const url    = URL.createObjectURL(blob);
-        const img    = new Image();
+        const blob = new Blob([inputFile.bytes as BlobPart], {
+          type: inputFormat.mime,
+        });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
         await new Promise<void>((res, rej) => {
-          img.onload  = () => res();
-          img.onerror = () => rej(new Error("Failed to load spectrogram image"));
-          img.src     = url;
+          img.onload = () => res();
+          img.onerror = () =>
+            rej(new Error("Failed to load spectrogram image"));
+          img.src = url;
         });
         URL.revokeObjectURL(url);
         const canvas = document.createElement("canvas");
-        canvas.width  = img.naturalWidth;
+        canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
-        const ctx    = canvas.getContext("2d")!;
+        const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0);
-        const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const { data, width, height } = ctx.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
         table = pngToMidi(data, width, height);
-
       } else if (inputFormat.internal === "mid") {
         table = extractEvents(inputFile.bytes);
-
-      } else if (inputFormat.internal === "txt" || inputFormat.internal === "rtttl" || inputFormat.internal === "grub") {
+      } else if (
+        inputFormat.internal === "txt" ||
+        inputFormat.internal === "rtttl" ||
+        inputFormat.internal === "grub"
+      ) {
         // Text input: MIDI-text, RTTTL, or GRUB tune
-        const text    = new TextDecoder().decode(inputFile.bytes);
+        const text = new TextDecoder().decode(inputFile.bytes);
         const trimmed = text.trimStart();
-        table =
-          trimmed.startsWith("# MIDI File")
-            ? stringToTable(text)
-            : /^[^\s:]+\s*:(?:\s*[a-zA-Z]=\d+\s*,?\s*)+:/.test(trimmed)
-              ? parseRtttl(text)
-              : parseGrubTune(text);
-      }
-      else {
-        throw new TypeError(`Unsupported input format: ${inputFormat.internal}`);
+        table = trimmed.startsWith("# MIDI File")
+          ? stringToTable(text)
+          : /^[^\s:]+\s*:(?:\s*[a-zA-Z]=\d+\s*,?\s*)+:/.test(trimmed)
+            ? parseRtttl(text)
+            : parseGrubTune(text);
+      } else {
+        throw new TypeError(
+          `Unsupported input format: ${inputFormat.internal}`,
+        );
       }
 
       // Step 2: event table -> output format
 
       if (outputFormat.internal === "txt") {
         const text = tableToString(table);
-        outputFiles.push({ bytes: new TextEncoder().encode(text), name: baseName + "." + outputFormat.extension });
-
+        outputFiles.push({
+          bytes: new TextEncoder().encode(text),
+          name: baseName + "." + outputFormat.extension,
+        });
       } else if (outputFormat.internal === "rtttl") {
         const text = tableToRtttl(table, baseName);
-        outputFiles.push({ bytes: new TextEncoder().encode(text), name: baseName + "." + outputFormat.extension });
-
+        outputFiles.push({
+          bytes: new TextEncoder().encode(text),
+          name: baseName + "." + outputFormat.extension,
+        });
       } else if (outputFormat.internal === "grub") {
         const text = tableToGrubTune(table);
-        outputFiles.push({ bytes: new TextEncoder().encode(text), name: baseName + "." + outputFormat.extension });
-
+        outputFiles.push({
+          bytes: new TextEncoder().encode(text),
+          name: baseName + "." + outputFormat.extension,
+        });
       } else if (outputFormat.internal === "mid") {
         const bytes = buildMidi(table);
-        outputFiles.push({ bytes, name: baseName + "." + outputFormat.extension });
-
+        outputFiles.push({
+          bytes,
+          name: baseName + "." + outputFormat.extension,
+        });
       } else if (outputFormat.internal === "png") {
         // Render piano roll onto a PNG using the same frequency->row mapping as pngToMidi
         const { pixels, width, height } = midiToPng(table);
         const canvas = document.createElement("canvas");
-        canvas.width  = width;
+        canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d")!;
-        ctx.putImageData(new ImageData(pixels as ImageDataArray, width, height), 0, 0);
+        ctx.putImageData(
+          new ImageData(pixels as ImageDataArray, width, height),
+          0,
+          0,
+        );
         const bytes: Uint8Array = await new Promise((res, rej) => {
-          canvas.toBlob(b => {
+          canvas.toBlob((b) => {
             if (!b) return rej("Canvas output failed");
-            b.arrayBuffer().then(buf => res(new Uint8Array(buf)));
+            b.arrayBuffer().then((buf) => res(new Uint8Array(buf)));
           }, "image/png");
         });
-        outputFiles.push({ bytes, name: baseName + "." + outputFormat.extension });
-
+        outputFiles.push({
+          bytes,
+          name: baseName + "." + outputFormat.extension,
+        });
       } else {
-        throw new TypeError(`Unsupported output format: ${outputFormat.internal}`);
+        throw new TypeError(
+          `Unsupported output format: ${outputFormat.internal}`,
+        );
       }
     }
 
@@ -211,8 +297,18 @@ export class midiSynthHandler implements FormatHandler {
     this.#sfontBin = sfontBin;
 
     this.supportedFormats.push(
-      { name: "MIDI",           format: "mid", extension: "mid", mime: "audio/midi", from: true,  to: false, internal: "mid", category: Category.AUDIO, lossless: true },
-      CommonFormats.WAV.builder("wav").allowTo().markLossless()
+      {
+        name: "MIDI",
+        format: "mid",
+        extension: "mid",
+        mime: "audio/midi",
+        from: true,
+        to: false,
+        internal: "mid",
+        category: Category.AUDIO,
+        lossless: true,
+      },
+      CommonFormats.WAV.builder("wav").allowTo().markLossless(),
     );
 
     this.ready = true;
@@ -221,9 +317,10 @@ export class midiSynthHandler implements FormatHandler {
   async doConvert(
     inputFiles: FileData[],
     _inputFormat: FileFormat,
-    _outputFormat: FileFormat
+    _outputFormat: FileFormat,
   ): Promise<FileData[]> {
-    if (!this.ready || !this.#sfontBin) throw new InitializationError("Handler not initialized.");
+    if (!this.ready || !this.#sfontBin)
+      throw new InitializationError("Handler not initialized.");
 
     const JSSynth = this.#JSSynth;
     const outputFiles: FileData[] = [];
@@ -246,7 +343,8 @@ export class midiSynthHandler implements FormatHandler {
         const l = new Float32Array(BUFFER_FRAMES);
         const r = new Float32Array(BUFFER_FRAMES);
         synth.render([l, r]);
-        left.push(l); right.push(r);
+        left.push(l);
+        right.push(r);
       }
 
       // Render reverb/chorus tail until voices stop (or max chunks)
@@ -254,7 +352,8 @@ export class midiSynthHandler implements FormatHandler {
         const l = new Float32Array(BUFFER_FRAMES);
         const r = new Float32Array(BUFFER_FRAMES);
         synth.render([l, r]);
-        left.push(l); right.push(r);
+        left.push(l);
+        right.push(r);
       }
 
       synth.close();
@@ -265,27 +364,42 @@ export class midiSynthHandler implements FormatHandler {
       let offset = 0;
       for (let i = 0; i < left.length; i++) {
         for (let j = 0; j < BUFFER_FRAMES; j++) {
-          pcm[offset++] = Math.max(-32768, Math.min(32767, left[i][j]  * 32767 | 0));
-          pcm[offset++] = Math.max(-32768, Math.min(32767, right[i][j] * 32767 | 0));
+          pcm[offset++] = Math.max(
+            -32768,
+            Math.min(32767, (left[i][j] * 32767) | 0),
+          );
+          pcm[offset++] = Math.max(
+            -32768,
+            Math.min(32767, (right[i][j] * 32767) | 0),
+          );
         }
       }
 
       const wavBytes = buildWav(pcm, SAMPLE_RATE, 2, 16);
-      outputFiles.push({ bytes: wavBytes, name: inputFile.name.replace(/\.[^.]+$/, "") + ".wav" });
+      outputFiles.push({
+        bytes: wavBytes,
+        name: inputFile.name.replace(/\.[^.]+$/, "") + ".wav",
+      });
     }
 
     return outputFiles;
   }
 }
 
-function buildWav(pcmData: Int16Array, sampleRate: number, numChannels: number, bitsPerSample: number): Uint8Array {
+function buildWav(
+  pcmData: Int16Array,
+  sampleRate: number,
+  numChannels: number,
+  bitsPerSample: number,
+): Uint8Array {
   const bytesPerSample = bitsPerSample / 8;
   const dataSize = pcmData.length * bytesPerSample;
   const buffer = new ArrayBuffer(44 + dataSize);
   const view = new DataView(buffer);
 
   const writeStr = (offset: number, str: string) => {
-    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    for (let i = 0; i < str.length; i++)
+      view.setUint8(offset + i, str.charCodeAt(i));
   };
 
   writeStr(0, "RIFF");

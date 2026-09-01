@@ -2,10 +2,9 @@
 
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
-import { Chess } from 'chess.js';
+import { Chess } from "chess.js";
 
 class chessjsHandler implements FormatHandler {
-
   public name: string = "chessjs";
   public supportedFormats: FileFormat[] = [
     {
@@ -17,7 +16,7 @@ class chessjsHandler implements FormatHandler {
       to: true,
       internal: "fen",
       category: Category.TEXT,
-      lossless: false
+      lossless: false,
     },
     {
       name: "Portable Game Notation",
@@ -28,20 +27,20 @@ class chessjsHandler implements FormatHandler {
       to: true,
       internal: "pgn",
       category: Category.TEXT,
-      lossless: true
+      lossless: true,
     },
     CommonFormats.TEXT.builder("txt").allowTo().markLossless(false),
   ];
   public ready: boolean = false;
 
-  async init () {
+  async init() {
     this.ready = true;
   }
 
-  async doConvert (
+  async doConvert(
     inputFiles: FileData[],
     inputFormat: FileFormat,
-    outputFormat: FileFormat
+    outputFormat: FileFormat,
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
     for (const inputFile of inputFiles) {
@@ -53,7 +52,9 @@ class chessjsHandler implements FormatHandler {
       } else if (inputFormat.internal === "pgn") {
         chess.loadPgn(input);
       } else {
-        throw new TypeError(`chessjsHandler cannot convert from ${inputFormat.mime}`);
+        throw new TypeError(
+          `chessjsHandler cannot convert from ${inputFormat.mime}`,
+        );
       }
 
       let output;
@@ -64,16 +65,18 @@ class chessjsHandler implements FormatHandler {
       } else if (outputFormat.internal === "txt") {
         output = chess.ascii();
       } else {
-        throw new TypeError(`chessjsHandler cannot convert to ${outputFormat.mime}`);
+        throw new TypeError(
+          `chessjsHandler cannot convert to ${outputFormat.mime}`,
+        );
       }
 
       const bytes = new TextEncoder().encode(output);
-      const name = inputFile.name.replace(/\.[^.]+$/, "") + `.${outputFormat.extension}`;
+      const name =
+        inputFile.name.replace(/\.[^.]+$/, "") + `.${outputFormat.extension}`;
       outputFiles.push({ name, bytes });
     }
     return outputFiles;
   }
-
 }
 
 export default chessjsHandler;

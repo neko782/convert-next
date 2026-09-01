@@ -1,6 +1,9 @@
 import { expect, test } from "bun:test";
 import CommonFormats from "../../src/CommonFormats.ts";
-import { getCodecArgsForFormat, getSpecialAudioFormats } from "../../src/handlers/FFmpeg.ts";
+import {
+  getCodecArgsForFormat,
+  getSpecialAudioFormats,
+} from "../../src/handlers/FFmpeg.ts";
 
 test("ffmpeg exposes distinct ogg opus and ogg vorbis aliases", () => {
   const formats = getSpecialAudioFormats();
@@ -15,7 +18,7 @@ test("ffmpeg exposes distinct ogg opus and ogg vorbis aliases", () => {
       to: false,
       internal: "ogg",
       category: "audio",
-      lossless: false
+      lossless: false,
     },
     {
       name: "Ogg Vorbis Audio",
@@ -26,8 +29,8 @@ test("ffmpeg exposes distinct ogg opus and ogg vorbis aliases", () => {
       to: true,
       internal: "ogg",
       category: "audio",
-      lossless: false
-    }
+      lossless: false,
+    },
   ]);
 });
 
