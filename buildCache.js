@@ -12,6 +12,7 @@ if (await outputFile.exists()) {
 const server = Bun.serve({
   async fetch (req) {
     const path = new URL(req.url).pathname.replace("/convert/", "") || "index.html";
+    if (path === "cache.json") return new Response("", { status: 204 }); // to better match the real server
     const file = Bun.file(`${__dirname}/dist/${path}`.replaceAll("..", ""));
     if (!(await file.exists())) return new Response("Not Found", { status: 404 });
     return new Response(file);
@@ -30,6 +31,7 @@ await Promise.all([
   new Promise(resolve => {
     page.on("console", msg => {
       const text = msg.text();
+      if (msg.type() === "error") console.error(text);
       if (text === "Built initial format list.") resolve();
     });
   }),
@@ -51,3 +53,5 @@ await Bun.write(outputPath, cacheJSON);
 
 await browser.close();
 server.stop();
+
+console.log("All done.");

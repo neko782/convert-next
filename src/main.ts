@@ -46,7 +46,10 @@ async function buildOptionList() {
 
 			try {
 				await handler.init();
-			} catch (_) { continue; }
+			} catch (error) {
+				console.error(`Error while initializing ${handler.name}:`, error);
+				continue;
+			}
 
 			if (handler.supportedFormats) {
 				window.supportedFormatCache.set(handler.name, handler.supportedFormats);
