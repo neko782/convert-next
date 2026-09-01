@@ -1,5 +1,3 @@
-// file: 7z.ts
-
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import SevenZip from "7z-wasm";

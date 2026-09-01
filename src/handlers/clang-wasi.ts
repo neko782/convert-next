@@ -1,5 +1,3 @@
-// file: clang-wasi.ts
-
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import { commands } from "@yowasp/clang";

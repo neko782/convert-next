@@ -1,5 +1,3 @@
-// file: chessjs.ts
-
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import { Chess } from "chess.js";

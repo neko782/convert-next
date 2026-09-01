@@ -1,5 +1,3 @@
-// file: pdfparse.ts
-
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats from "src/CommonFormats.ts";
 import { PDFParse } from "pdf-parse";
