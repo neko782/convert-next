@@ -9,6 +9,40 @@ import normalizeMimeType from "../normalizeMimeType.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
+export function getSpecialAudioFormats(): FileFormat[] {
+  return [
+    {
+      name: "Ogg Opus Audio",
+      format: "opus",
+      extension: "ogg",
+      mime: CommonFormats.OGG.mime,
+      from: true,
+      to: false,
+      internal: "ogg",
+      category: "audio",
+      lossless: false
+    },
+    {
+      name: "Ogg Vorbis Audio",
+      format: "vorbis",
+      extension: "ogg",
+      mime: CommonFormats.OGG.mime,
+      from: false,
+      to: true,
+      internal: "ogg",
+      category: "audio",
+      lossless: false
+    }
+  ];
+}
+
+export function getCodecArgsForFormat(outputFormat: FileFormat): string[] {
+  if (outputFormat.internal === "ogg" && outputFormat.format === "vorbis") {
+    return ["-c:a", "libvorbis"];
+  }
+  return [];
+}
+
 class FFmpegHandler implements FormatHandler {
 
   static formatNames: Map<string, string> = new Map([
@@ -261,6 +295,7 @@ class FFmpegHandler implements FormatHandler {
     // Add PNG input explicitly - FFmpeg otherwise treats both PNG and
     // APNG as the same thing.
     this.supportedFormats.push(CommonFormats.PNG.builder("png").allowFrom());
+    this.supportedFormats.push(...getSpecialAudioFormats());
 
     this.#ffmpeg.terminate();
 
@@ -333,6 +368,7 @@ class FFmpegHandler implements FormatHandler {
     } else if (outputFormat.internal === "asf") {
       command.push("-b:v", "15M", "-b:a", "192k");
     }
+    command.push(...getCodecArgsForFormat(outputFormat));
     if (args) command.push(...args);
     command.push("output");
 
