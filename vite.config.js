@@ -6,12 +6,7 @@ import preact from "@preact/preset-vite";
 export default defineConfig({
   publicDir: "public",
   optimizeDeps: {
-    exclude: [
-      "@ffmpeg/ffmpeg",
-      "@sqlite.org/sqlite-wasm",
-      "@bokuweb/zstd-wasm",
-      "@yowasp/clang",
-    ],
+    exclude: ["@ffmpeg/ffmpeg", "@sqlite.org/sqlite-wasm", "@yowasp/clang"],
   },
   base: "/convert/",
   plugins: [
