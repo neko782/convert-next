@@ -15,6 +15,7 @@
         devShell = pkgs.mkShell {
           packages = with pkgs; [
             bun.packages.${system}.bun
+            bazelisk
             git
             pkg-config
             cairo
@@ -51,6 +52,7 @@
 
           nativeBuildInputs = with pkgs; [
             git
+            bazelisk
             pkg-config
             cairo
             pango
@@ -86,6 +88,11 @@
             export PUPPETEER_SKIP_DOWNLOAD=1
             export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
 
+            # bazelisk downloads bazel into $HOME and bazel keeps its output
+            # base there; the sandbox HOME is not writable.
+            export HOME="$TMPDIR/home"
+            mkdir -p "$HOME"
+
             # Work in /tmp since $src is read-only
             cd /tmp
             rm -rf convert project
@@ -98,7 +105,6 @@
             export PATH="$BUN_INSTALL/bin:$PATH"
 
             bun --version
-            bun install --frozen-lockfile
             bun run build
           '';
 

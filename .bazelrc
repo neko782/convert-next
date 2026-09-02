@@ -1,0 +1,4 @@
+# Let the puppeteer step (//:cache) find a browser provided by the environment.
+# --action_env is global: changing this variable invalidates every action, not
+# just //:cache. Acceptable because it rarely changes on a given machine.
+build --action_env=PUPPETEER_EXECUTABLE_PATH

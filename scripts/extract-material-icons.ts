@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -10,12 +9,16 @@ import { join } from "node:path";
 import ts from "typescript";
 import { extraExtensionToIcon } from "./extra-language-extensions";
 
-const REPO_URL =
-  "https://github.com/material-extensions/vscode-material-icon-theme.git";
-const CACHE_DIR = join(process.cwd(), ".cache/material-icon-theme");
-const ICONS_SRC = join(CACHE_DIR, "icons");
-const FILE_ICONS_TS = join(CACHE_DIR, "src/core/icons/fileIcons.ts");
-const OUT_PUBLIC = join(process.cwd(), "public/material-file-icons");
+// usage: extract-material-icons.ts <path to theme's src/core/icons/fileIcons.ts> <output dir>
+const [FILE_ICONS_TS, OUT_PUBLIC] = process.argv.slice(2);
+const FILE_ICONS_REL = join("src", "core", "icons", "fileIcons.ts");
+if (!FILE_ICONS_TS?.endsWith(FILE_ICONS_REL) || !OUT_PUBLIC) {
+  throw new Error(
+    "usage: extract-material-icons.ts <material-icon-theme>/src/core/icons/fileIcons.ts <output dir>",
+  );
+}
+const THEME_DIR = FILE_ICONS_TS.slice(0, -FILE_ICONS_REL.length);
+const ICONS_SRC = join(THEME_DIR, "icons");
 const OUT_ICONS = join(OUT_PUBLIC, "icons");
 const OUT_MAP = join(OUT_PUBLIC, "extension-map.json");
 
@@ -27,27 +30,6 @@ interface FileIconEntry {
   name: string;
   fileExtensions: string[];
   cloneBase?: string;
-}
-
-function ensureRepo(): void {
-  if (existsSync(join(CACHE_DIR, ".git"))) {
-    const r = spawnSync("git", ["-C", CACHE_DIR, "pull", "--ff-only"], {
-      stdio: "inherit",
-      encoding: "utf-8",
-    });
-    if (r.status !== 0) {
-      console.warn("[material-icons] git pull failed; using cached tree");
-    }
-    return;
-  }
-  mkdirSync(join(process.cwd(), ".cache"), { recursive: true });
-  const r = spawnSync("git", ["clone", "--depth", "1", REPO_URL, CACHE_DIR], {
-    stdio: "inherit",
-    encoding: "utf-8",
-  });
-  if (r.status !== 0) {
-    throw new Error("[material-icons] git clone failed");
-  }
 }
 
 function extractFileIconEntries(sourcePath: string): FileIconEntry[] {
@@ -142,9 +124,8 @@ function writeDefaultFileSvg(): void {
 }
 
 function main(): void {
-  ensureRepo();
   if (!existsSync(FILE_ICONS_TS)) {
-    throw new Error("[material-icons] missing fileIcons.ts after clone");
+    throw new Error(`[material-icons] missing ${FILE_ICONS_TS}`);
   }
 
   const entries = extractFileIconEntries(FILE_ICONS_TS);
@@ -196,7 +177,7 @@ function main(): void {
   writeFileSync(OUT_MAP, JSON.stringify(extensionMap), "utf-8");
 
   console.log(
-    `[material-icons] wrote ${Object.keys(extensionMap).length} extension mappings and ${logicalNames.size} icon files under public/material-file-icons`,
+    `[material-icons] wrote ${Object.keys(extensionMap).length} extension mappings and ${logicalNames.size} icon files under ${OUT_PUBLIC}`,
   );
 }
 

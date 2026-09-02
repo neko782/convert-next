@@ -1,0 +1,8 @@
+package(default_visibility = ["//visibility:public"])
+
+genrule(
+    name = "turbowarp_unpackager",
+    srcs = ["@turbowarp_unpackager//:unpackager.js"],
+    outs = ["generated/turbowarp-unpackager/unpackager.js"],
+    cmd = "cp $< $@",
+)

@@ -1,0 +1,110 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("//tools/bun:defs.bzl", "bun_run")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    ".npmrc",
+    "bun.lock",
+    "package.json",
+])
+
+filegroup(
+    name = "srcs",
+    srcs = glob(
+        ["src/**"],
+        exclude = ["src/electron.cjs"],
+    ) + [
+        "base.css",
+        "favicon.ico",
+        "index.html",
+        "package.json",
+        "style.css",
+        "tsconfig.json",
+        "vite.config.js",
+    ],
+)
+
+bun_run(
+    name = "material_file_icons",
+    srcs = [
+        "//scripts:extra-language-extensions.ts",
+        "//scripts:extract-material-icons.ts",
+    ],
+    cmd = "bun scripts/extract-material-icons.ts $EXECROOT/$(location @material_icon_theme//:src/core/icons/fileIcons.ts) $(OUT_DIR)",
+    data = [
+        "@material_icon_theme//:icons",
+        "@material_icon_theme//:src/core/icons/fileIcons.ts",
+    ],
+    node_modules = "@npm//:node_modules",
+    out_dir = "public/material-file-icons",
+)
+
+# Generated inputs that the source tree expects at these paths.
+GENERATED = [
+    ":material_file_icons",
+    "//third_party:turbowarp_unpackager",
+]
+
+bun_run(
+    name = "typecheck",
+    srcs = [":srcs"],
+    cmd = "bun node_modules/typescript/bin/tsc && touch $(OUTS)",
+    gen_srcs = GENERATED,
+    node_modules = "@npm//:node_modules",
+    outs = ["typecheck.ok"],
+)
+
+bun_run(
+    name = "dist",
+    srcs = [":srcs"],
+    cmd = "bun node_modules/vite/bin/vite.js build --outDir $(OUT_DIR) --emptyOutDir",
+    gen_srcs = GENERATED,
+    node_modules = "@npm//:node_modules",
+    out_dir = "dist",
+)
+
+bun_run(
+    name = "cache",
+    srcs = ["buildCache.js"],
+    cmd = "bun buildCache.js $EXECROOT/$(location :dist) $(OUTS) --minify",
+    data = [":dist"],
+    node_modules = "@npm//:node_modules",
+    outs = ["cache.json"],
+    tags = [
+        "no-sandbox",  # puppeteer needs a browser from the host
+        "requires-network",  # localhost server
+    ],
+)
+
+# Development helpers run in the checkout, not in the sandbox.
+# Links node_modules and the generated files into the checkout, then runs
+# `bun <args>` there. `bazel run //:dev` starts vite with HMR; pass other bun
+# arguments after `--`, e.g.
+# `bazel run //:dev -- node_modules/vite/bin/vite.js preview`.
+sh_binary(
+    name = "dev",
+    srcs = ["//tools/bun:dev.sh"],
+    args = ["$(rootpath @npm//:package.json)"] + ["$(rootpaths %s)" % g for g in GENERATED] + ["--"],
+    data = GENERATED + ["@npm//:package.json"],
+)
+
+# `bazel run //:export` copies the site into ./dist for tools that need it in
+# the checkout (electron-builder, docker, static hosting). Typechecking is a
+# dependency so a broken tree never ships.
+sh_binary(
+    name = "export",
+    srcs = ["//tools/bun:export.sh"],
+    args = ["$(rootpath :dist)=dist"],
+    data = [
+        ":dist",
+        ":typecheck",
+    ],
+)
+
+sh_binary(
+    name = "export_cache",
+    srcs = ["//tools/bun:export.sh"],
+    args = ["$(rootpath :cache)=dist/cache.json"],
+    data = [":cache"],
+)

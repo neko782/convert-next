@@ -24,22 +24,28 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: "latest"
           cache: true
 
-      - name: Install dependencies
-        run: bun i --frozen-lockfile
-
       - name: Build
-        run: |
-          export VITE_COMMIT_SHA=${{ github.sha }}
-          bun run build
+        run: bun run build
 
       - name: Generate cache
         run: bun run cache:build
+
+      # tests run against the checkout, so they need a local node_modules
+      - name: Install dependencies
+        run: bun i --frozen-lockfile
 
       - name: Test traversion graph
         run: bun test test/TraversionGraph.test.ts

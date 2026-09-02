@@ -8,6 +8,8 @@ import {
 import addonsUrl from "node_modules/turbowarp-packager-browser/dist/scaffolding/addons.js?url";
 import scaffoldingFullUrl from "node_modules/turbowarp-packager-browser/dist/scaffolding/scaffolding-full.js?url";
 import scaffoldingMinUrl from "node_modules/turbowarp-packager-browser/dist/scaffolding/scaffolding-min.js?url";
+import JSZip from "@turbowarp/jszip";
+import createUnpackager from "third_party/generated/turbowarp-unpackager/unpackager.js";
 
 // patching some assets
 largeAssets.scaffolding.src = scaffoldingFullUrl;
@@ -35,7 +37,7 @@ class turbowarpHandler implements FormatHandler {
   private unpackager?: any;
 
   async init() {
-    this.unpackager = await import("./turbowarp/unpackager/unpackager.js");
+    this.unpackager = createUnpackager(JSZip);
     this.ready = true;
   }
 

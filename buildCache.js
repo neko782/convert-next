@@ -1,8 +1,10 @@
 import puppeteer from "puppeteer";
 
-const minify = process.argv[3] === "--minify";
-
-const outputPath = process.argv[2] || "cache.json";
+// usage: buildCache.js <dist dir> <output file> [--minify]
+const [distDir, outputPath = "cache.json"] = process.argv.slice(2);
+const minify = process.argv.includes("--minify");
+if (!distDir)
+  throw new Error("usage: buildCache.js <dist dir> <output file> [--minify]");
 // delete previous cache.json so regeneration is forced to happen
 const outputFile = Bun.file(outputPath);
 if (await outputFile.exists()) {
@@ -14,12 +16,12 @@ const server = Bun.serve({
     const path =
       new URL(req.url).pathname.replace("/convert/", "") || "index.html";
     if (path === "cache.json") return new Response("", { status: 204 }); // to better match the real server
-    const file = Bun.file(`${__dirname}/dist/${path}`.replaceAll("..", ""));
+    const file = Bun.file(`${distDir}/${path}`.replaceAll("..", ""));
     if (!(await file.exists()))
       return new Response("Not Found", { status: 404 });
     return new Response(file);
   },
-  port: 8080,
+  port: 0,
 });
 
 const browser = await puppeteer.launch({
@@ -37,7 +39,7 @@ await Promise.all([
       if (text === "Built initial format list.") resolve();
     });
   }),
-  page.goto("http://localhost:8080/convert/index.html"),
+  page.goto(`http://localhost:${server.port}/convert/index.html`),
 ]);
 
 const cacheJSON = await page.evaluate((minify) => {

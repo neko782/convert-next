@@ -1,0 +1,38 @@
+module(
+    name = "convert",
+    version = "0.0.0",
+)
+
+bazel_dep(name = "rules_shell", version = "0.6.1")
+
+http_archive = use_repo_rule(
+    "@bazel_tools//tools/build_defs/repo:http.bzl",
+    "http_archive",
+)
+
+bun_install = use_repo_rule("//tools/bun:install.bzl", "bun_install")
+
+bun_install(
+    name = "npm",
+    extra_files = ["//:.npmrc"],
+    lockfile = "//:bun.lock",
+    package_json = "//:package.json",
+)
+
+http_archive(
+    name = "turbowarp_unpackager",
+    build_file = "//third_party:turbowarp_unpackager.BUILD.bazel",
+    integrity = "sha256-O7ENLTz5BJbdyim1I9qFqQEEDXB6wDdR3kDt01yNYc4=",
+    patch_args = ["-p1"],
+    patches = ["//third_party:turbowarp-unpackager-esm.patch"],
+    strip_prefix = "unpackager-2eb03bd5dc18e3b7b1318190bef8e14274123778",
+    urls = ["https://github.com/TurboWarp/unpackager/archive/2eb03bd5dc18e3b7b1318190bef8e14274123778.tar.gz"],
+)
+
+http_archive(
+    name = "material_icon_theme",
+    build_file = "//third_party:material_icon_theme.BUILD.bazel",
+    integrity = "sha256-fudLiDjUcBo4cftgToy9gIBPONE2OBR+e3uvHmYu37U=",
+    strip_prefix = "vscode-material-icon-theme-2f6a487908566b33b01678f07b14b523768111a8",
+    urls = ["https://github.com/material-extensions/vscode-material-icon-theme/archive/2f6a487908566b33b01678f07b14b523768111a8.tar.gz"],
+)

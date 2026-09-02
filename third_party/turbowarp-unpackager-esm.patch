@@ -1,0 +1,22 @@
+--- a/unpackager.js
++++ b/unpackager.js
+@@ -4,7 +4,7 @@
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  */
+ 
+-var unpackage = (function(JSZip) {
++export default (function(JSZip) {
+   'use strict';
+ 
+   if (!JSZip) {
+@@ -474,9 +474,4 @@
+   };
+ 
+   return unpackage;
+-}(typeof JSZip !== 'undefined' ? JSZip : null));
+-
+-// Allow usage as Node.js dependency
+-if (typeof module !== 'undefined') {
+-  module.exports = unpackage;
+-}
++});
