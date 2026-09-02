@@ -2,3 +2,7 @@
 # --action_env is global: changing this variable invalidates every action, not
 # just //:cache. Acceptable because it rarely changes on a given machine.
 build --action_env=PUPPETEER_EXECUTABLE_PATH
+
+# bun_run actions call the host `bun`. Actions get a fixed PATH by default
+# (/bin:/usr/bin:/usr/local/bin), which misses e.g. ~/.bun/bin on CI runners.
+build --action_env=PATH
