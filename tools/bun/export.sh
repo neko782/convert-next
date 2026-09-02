@@ -5,20 +5,23 @@
 # them there (electron-builder, docker, static hosting).
 set -eu
 
-runfiles="$0.runfiles/_main"
+runfiles="${RUNFILES_DIR:-$0.runfiles}/_main"
 manifest="${RUNFILES_MANIFEST_FILE:-$0.runfiles/MANIFEST}"
 
 # rlocation <path>: runfiles tree where it exists, otherwise (Windows, no
 # --enable_runfiles) look the path up in the runfiles manifest.
 rlocation() {
-  if [ -e "$runfiles/$1" ]; then
-    echo "$runfiles/$1"
-  else
-    case "$1" in
-      ../*) key="${1#../}" ;;   # external repository
-      *) key="_main/$1" ;;
+  path="$1"
+  # $(rootpath) may yield "./foo" on some hosts; manifest keys never have "./".
+  while [ "${path#./}" != "$path" ]; do path="${path#./}"; done
+  if [ -e "$runfiles/$path" ]; then
+    echo "$runfiles/$path"
+  elif [ -f "$manifest" ]; then
+    case "$path" in
+      ../*) key="${path#../}" ;;   # external repository
+      *) key="_main/$path" ;;
     esac
-    grep "^$key " "$manifest" | cut -d' ' -f2- | head -n1
+    grep "^$key " "$manifest" | cut -d' ' -f2- | head -n1 | tr -d '\r'
   fi
 }
 
@@ -26,7 +29,10 @@ cd "$BUILD_WORKSPACE_DIRECTORY"
 
 for pair in "$@"; do
   src="$(rlocation "${pair%%=*}")"
-  [ -n "$src" ] || { echo "export.sh: ${pair%%=*} not in runfiles" >&2; exit 1; }
+  [ -n "$src" ] || {
+    echo "export.sh: ${pair%%=*} not in runfiles (runfiles=$runfiles manifest=$manifest)" >&2
+    exit 1
+  }
   dest="${pair#*=}"
   [ -e "$dest" ] && chmod -R u+w "$dest"
   rm -rf "$dest"
