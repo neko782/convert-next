@@ -5,6 +5,7 @@ import CommonFormats from "src/CommonFormats.ts";
 
 class svgTraceHandler implements FormatHandler {
   public name: string = "svgTrace";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

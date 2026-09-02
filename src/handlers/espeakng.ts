@@ -7,6 +7,7 @@ import espeakWorkerUrl from "./espeakng.js/js/espeakng.worker.js?url";
 
 export class espeakngHandler implements FormatHandler {
   public name: string = "espeakng";
+  public readonly requiresMainThread = true;
   public ready: boolean = true;
   #tts: SimpleTTS | undefined = undefined;
 

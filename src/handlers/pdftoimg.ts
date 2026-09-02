@@ -14,6 +14,7 @@ function base64ToBytes(base64: string) {
 
 class pdftoimgHandler implements FormatHandler {
   public name: string = "pdftoimg";
+  public readonly requiresMainThread = true;
 
   public supportedFormats: FileFormat[] = [
     CommonFormats.PDF.builder("pdf").allowFrom(),

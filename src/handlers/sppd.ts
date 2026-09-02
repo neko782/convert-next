@@ -188,6 +188,7 @@ const wallPortalMaterial = new THREE.MeshLambertMaterial({ color: 0x505050 });
 
 class sppdHandler implements FormatHandler {
   public name: string = "sppd";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Portal 2 Demo File",

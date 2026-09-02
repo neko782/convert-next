@@ -6,6 +6,7 @@ import { isMOBI, MOBI } from "./azw3/mobi.js";
 
 class azw3Handler implements FormatHandler {
   public name: string = "azw3";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

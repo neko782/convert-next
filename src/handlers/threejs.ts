@@ -8,6 +8,7 @@ import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 
 class threejsHandler implements FormatHandler {
   public name: string = "threejs";
+  public readonly requiresMainThread = true;
   public supportedFormats = [
     {
       name: "GL Transmission Format Binary",

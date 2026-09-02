@@ -5,6 +5,7 @@ import CommonFormats, { Category } from "src/CommonFormats.ts";
 
 class bsorHandler implements FormatHandler {
   public name: string = "bsor";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Beat Saber Open Replay",

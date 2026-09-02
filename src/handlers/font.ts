@@ -231,6 +231,7 @@ async function normalizeToSfnt(
 
 class fontHandler implements FormatHandler {
   public name: string = "font";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 
