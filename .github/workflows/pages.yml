@@ -18,6 +18,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # bun_install skips puppeteer's browser download (--ignore-scripts); use
+    # the Chrome preinstalled on the runner instead. Job-level on purpose:
+    # .bazelrc has --action_env for this, so a value that differs between the
+    # build and cache steps would invalidate every action and rebuild the site.
+    env:
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -52,12 +59,8 @@ jobs:
       - name: Build
         run: bun run build
 
-      # bun_install skips puppeteer's browser download (--ignore-scripts);
-      # use the Chrome preinstalled on the runner instead.
       - name: Generate cache
         run: bun run cache:build
-        env:
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
 
       # tests run against the checkout, so they need a local node_modules
       - name: Install dependencies

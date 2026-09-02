@@ -7,6 +7,22 @@
 set -eu
 
 runfiles="$0.runfiles/_main"
+manifest="${RUNFILES_MANIFEST_FILE:-$0.runfiles/MANIFEST}"
+
+# rlocation <path>: runfiles tree where it exists, otherwise (Windows, no
+# --enable_runfiles) look the path up in the runfiles manifest.
+rlocation() {
+  if [ -e "$runfiles/$1" ]; then
+    echo "$runfiles/$1"
+  else
+    case "$1" in
+      ../*) key="${1#../}" ;;   # external repository
+      *) key="_main/$1" ;;
+    esac
+    grep "^$key " "$manifest" | cut -d' ' -f2- | head -n1
+  fi
+}
+
 cd "$BUILD_WORKSPACE_DIRECTORY"
 
 # link <target> <path>: place a symlink at <path>, leaving real files alone
@@ -19,10 +35,10 @@ link() {
   ln -sfn "$1" "$2"
 }
 
-link "$(dirname "$(readlink -f "$runfiles/$1")")/node_modules" node_modules
+link "$(dirname "$(readlink -f "$(rlocation "$1")")")/node_modules" node_modules
 shift
 while [ "$1" != "--" ]; do
-  link "$(readlink -f "$runfiles/$1")" "$1"
+  link "$(readlink -f "$(rlocation "$1")")" "$1"
   shift
 done
 shift

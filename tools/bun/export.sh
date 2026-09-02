@@ -6,10 +6,27 @@
 set -eu
 
 runfiles="$0.runfiles/_main"
+manifest="${RUNFILES_MANIFEST_FILE:-$0.runfiles/MANIFEST}"
+
+# rlocation <path>: runfiles tree where it exists, otherwise (Windows, no
+# --enable_runfiles) look the path up in the runfiles manifest.
+rlocation() {
+  if [ -e "$runfiles/$1" ]; then
+    echo "$runfiles/$1"
+  else
+    case "$1" in
+      ../*) key="${1#../}" ;;   # external repository
+      *) key="_main/$1" ;;
+    esac
+    grep "^$key " "$manifest" | cut -d' ' -f2- | head -n1
+  fi
+}
+
 cd "$BUILD_WORKSPACE_DIRECTORY"
 
 for pair in "$@"; do
-  src="$runfiles/${pair%%=*}"
+  src="$(rlocation "${pair%%=*}")"
+  [ -n "$src" ] || { echo "export.sh: ${pair%%=*} not in runfiles" >&2; exit 1; }
   dest="${pair#*=}"
   [ -e "$dest" ] && chmod -R u+w "$dest"
   rm -rf "$dest"
