@@ -5,19 +5,24 @@ import {
   writeFileSync,
   readFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import ts from "typescript";
 import { extraExtensionToIcon } from "./extra-language-extensions";
 
 // usage: extract-material-icons.ts <path to theme's src/core/icons/fileIcons.ts> <output dir>
 const [FILE_ICONS_TS, OUT_PUBLIC] = process.argv.slice(2);
-const FILE_ICONS_REL = join("src", "core", "icons", "fileIcons.ts");
-if (!FILE_ICONS_TS?.endsWith(FILE_ICONS_REL) || !OUT_PUBLIC) {
+if (
+  !FILE_ICONS_TS ||
+  basename(FILE_ICONS_TS) !== "fileIcons.ts" ||
+  !OUT_PUBLIC
+) {
   throw new Error(
     "usage: extract-material-icons.ts <material-icon-theme>/src/core/icons/fileIcons.ts <output dir>",
   );
 }
-const THEME_DIR = FILE_ICONS_TS.slice(0, -FILE_ICONS_REL.length);
+// resolve() normalises separators, so this works whether the argument arrived
+// with / or \ (bash on Windows hands native programs mixed paths).
+const THEME_DIR = resolve(FILE_ICONS_TS, "..", "..", "..", "..");
 const ICONS_SRC = join(THEME_DIR, "icons");
 const OUT_ICONS = join(OUT_PUBLIC, "icons");
 const OUT_MAP = join(OUT_PUBLIC, "extension-map.json");
