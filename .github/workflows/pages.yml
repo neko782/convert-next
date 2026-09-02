@@ -30,11 +30,23 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
+          # @npm is produced by `bun install` inside a repository rule; the
+          # repository cache only holds downloads, so cache the result itself.
+          # bun_install also watches the bun binary, hence the pinned version.
+          external-cache: |
+            manifest:
+              npm:
+                - bun.lock
+                - package.json
+                - .npmrc
+                - .bun-version
+          # PRs read the master cache but must not overwrite it.
+          cache-save: ${{ github.event_name != 'pull_request' }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "latest"
+          bun-version-file: .bun-version
           cache: true
 
       - name: Build

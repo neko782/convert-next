@@ -36,11 +36,19 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
+          # see pages.yml
+          external-cache: |
+            manifest:
+              npm:
+                - bun.lock
+                - package.json
+                - .npmrc
+                - .bun-version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "latest"
+          bun-version-file: .bun-version
           cache: true
 
       - name: Install dependencies

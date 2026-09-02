@@ -11,6 +11,21 @@ filegroup(
 )
 """
 
+_CLEAN_JS = """\
+const { readdirSync, unlinkSync } = require("node:fs");
+const { join } = require("node:path");
+const names = new Set(["BUILD", "BUILD.bazel", "WORKSPACE", "MODULE.bazel"]);
+const stack = ["node_modules"];
+while (stack.length) {
+  const dir = stack.pop();
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, entry.name);
+    if (entry.isDirectory()) stack.push(p);
+    else if (entry.isFile() && names.has(entry.name)) unlinkSync(p);
+  }
+}
+"""
+
 def _bun_install_impl(rctx):
     bun = rctx.which("bun")
     if not bun:
@@ -34,27 +49,9 @@ def _bun_install_impl(rctx):
         fail("bun install failed:\n%s%s" % (result.stdout, result.stderr))
 
     # npm packages occasionally ship Bazel files; they would turn directories
-    # into packages and break the glob above.
-    result = rctx.execute([
-        "find",
-        "node_modules",
-        "(",
-        "-name",
-        "BUILD",
-        "-o",
-        "-name",
-        "BUILD.bazel",
-        "-o",
-        "-name",
-        "WORKSPACE",
-        "-o",
-        "-name",
-        "MODULE.bazel",
-        ")",
-        "-type",
-        "f",
-        "-delete",
-    ])
+    # into packages and break the glob above. Done with bun rather than
+    # `find`, which on Windows resolves to the unrelated FIND.EXE.
+    result = rctx.execute([bun, "-e", _CLEAN_JS])
     if result.return_code != 0:
         fail("cleaning node_modules failed:\n%s" % result.stderr)
 

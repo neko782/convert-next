@@ -23,6 +23,22 @@ EXECROOT="$PWD"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
+# link <target> <path>: symlink on POSIX. Git Bash's `ln -s` silently copies
+# (node_modules would be copied for every action), so on Windows use a
+# junction for directories, which needs no privileges, and copy plain files.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    link() {{
+      if [ -d "$1" ]; then
+        MSYS_NO_PATHCONV=1 cmd /c mklink /J "$(cygpath -w "$2")" "$(cygpath -w "$1")" >/dev/null
+      else
+        cp -L "$1" "$2"
+      fi
+    }} ;;
+  *)
+    link() {{ ln -s "$1" "$2"; }} ;;
+esac
+
 while read -r f; do
   mkdir -p "$STAGE/$(dirname "$f")"
   cp -L "$f" "$STAGE/$f"
@@ -32,7 +48,7 @@ EOF
 
 while read -r dest && read -r src; do
   mkdir -p "$STAGE/$(dirname "$dest")"
-  ln -s "$EXECROOT/$src" "$STAGE/$dest"
+  link "$EXECROOT/$src" "$STAGE/$dest"
 done <<'EOF'
 {links}
 EOF
@@ -94,8 +110,12 @@ def _bun_run_impl(ctx):
         ),
     )
 
-    ctx.actions.run(
-        executable = script,
+    # run_shell rather than run: Windows cannot launch a .sh file directly,
+    # run_shell goes through Bazel's bash (BAZEL_SH / Git Bash) everywhere.
+    ctx.actions.run_shell(
+        command = "exec \"$1\"",
+        arguments = [script.path],
+        tools = [script],
         inputs = depset(
             ctx.files.srcs + ctx.files.gen_srcs + ctx.files.data + ctx.files.node_modules,
         ),
