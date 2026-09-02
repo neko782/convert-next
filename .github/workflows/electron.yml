@@ -16,10 +16,13 @@ jobs:
         include:
           - os: ubuntu-24.04
             platform: linux
+            chrome: /usr/bin/google-chrome
           - os: windows-2025
             platform: win
+            chrome: C:\Program Files\Google\Chrome\Application\chrome.exe
           - os: macos-15
             platform: mac
+            chrome: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
     steps:
       - name: Checkout
@@ -43,8 +46,12 @@ jobs:
       - name: Install dependencies
         run: bun i --frozen-lockfile
 
+      # bun_install skips puppeteer's browser download (--ignore-scripts);
+      # the cache step uses the Chrome preinstalled on the runner instead.
       - name: Build Distribution for ${{ matrix.platform }}
         run: bun run desktop:dist:${{ matrix.platform }}
+        env:
+          PUPPETEER_EXECUTABLE_PATH: ${{ matrix.chrome }}
 
       - name: Publish GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'

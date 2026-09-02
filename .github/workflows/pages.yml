@@ -40,8 +40,12 @@ jobs:
       - name: Build
         run: bun run build
 
+      # bun_install skips puppeteer's browser download (--ignore-scripts);
+      # use the Chrome preinstalled on the runner instead.
       - name: Generate cache
         run: bun run cache:build
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
 
       # tests run against the checkout, so they need a local node_modules
       - name: Install dependencies
