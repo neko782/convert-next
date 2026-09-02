@@ -4,9 +4,10 @@ import SevenZip from "7z-wasm";
 import mime from "mime";
 import normalizeMimeType from "src/normalizeMimeType.ts";
 import type { ConvertContext } from "src/ui/ProgressStore.js";
+import sevenZipWasmUrl from "node_modules/7z-wasm/7zz.wasm?url";
 
 const defaultSevenZipOptions = {
-  locateFile: () => "/convert/wasm/7zz.wasm",
+  locateFile: () => sevenZipWasmUrl,
 };
 
 class sevenZipHandler implements FormatHandler {

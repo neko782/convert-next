@@ -2,6 +2,8 @@ import CommonFormats from "src/CommonFormats.ts";
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import { SimpleTTS } from "./espeakng.js/js/espeakng-simple.js";
 import { WaveFile } from "wavefile";
+import "./espeakng.js/js/espeakng.worker.data?url";
+import espeakWorkerUrl from "./espeakng.js/js/espeakng.worker.js?url";
 
 export class espeakngHandler implements FormatHandler {
   public name: string = "espeakng";
@@ -22,6 +24,7 @@ export class espeakngHandler implements FormatHandler {
     if (this.#tts == undefined) {
       await new Promise<void>((resolve) => {
         this.#tts = new SimpleTTS({
+          workerPath: espeakWorkerUrl,
           defaultVoice: "en",
           defaultRate: 220,
           defaultPitch: 200,

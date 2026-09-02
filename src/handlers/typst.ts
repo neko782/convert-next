@@ -2,6 +2,8 @@ import CommonFormats from "src/CommonFormats.ts";
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import type { TypstSnippet } from "@myriaddreamin/typst.ts/dist/esm/contrib/snippet.mjs";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
+import typstCompilerWasmUrl from "node_modules/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm?url";
+import typstRendererWasmUrl from "node_modules/@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm?url";
 
 class TypstHandler implements FormatHandler {
   public name: string = "typst";
@@ -20,12 +22,10 @@ class TypstHandler implements FormatHandler {
       await import("@myriaddreamin/typst.ts/dist/esm/contrib/snippet.mjs");
 
     $typst.setCompilerInitOptions({
-      getModule: () =>
-        `${import.meta.env.BASE_URL}wasm/typst_ts_web_compiler_bg.wasm`,
+      getModule: () => typstCompilerWasmUrl,
     });
     $typst.setRendererInitOptions({
-      getModule: () =>
-        `${import.meta.env.BASE_URL}wasm/typst_ts_renderer_bg.wasm`,
+      getModule: () => typstRendererWasmUrl,
     });
 
     this.$typst = $typst;

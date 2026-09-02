@@ -5,13 +5,14 @@ import {
   largeAssets,
   downloadProject,
 } from "turbowarp-packager-browser";
+import addonsUrl from "node_modules/turbowarp-packager-browser/dist/scaffolding/addons.js?url";
+import scaffoldingFullUrl from "node_modules/turbowarp-packager-browser/dist/scaffolding/scaffolding-full.js?url";
+import scaffoldingMinUrl from "node_modules/turbowarp-packager-browser/dist/scaffolding/scaffolding-min.js?url";
 
 // patching some assets
-largeAssets.scaffolding.src =
-  "/convert/js/turbowarp-scaffolding/scaffolding-full.js";
-largeAssets["scaffolding-min"].src =
-  "/convert/js/turbowarp-scaffolding/scaffolding-min.js";
-largeAssets.addons.src = "/convert/js/turbowarp-scaffolding/addons.js";
+largeAssets.scaffolding.src = scaffoldingFullUrl;
+largeAssets["scaffolding-min"].src = scaffoldingMinUrl;
+largeAssets.addons.src = addonsUrl;
 
 class turbowarpHandler implements FormatHandler {
   public name: string = "turbowarp";
