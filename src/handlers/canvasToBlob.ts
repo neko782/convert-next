@@ -5,6 +5,7 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class canvasToBlobHandler implements FormatHandler {
   public name: string = "canvasToBlob";
+  public readonly requiresMainThread = true;
 
   public supportedFormats: FileFormat[] = [
     CommonFormats.PNG.supported("png", true, true, true),

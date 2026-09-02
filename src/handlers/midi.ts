@@ -99,6 +99,7 @@ function loadFluidSynth(): Promise<{ JSSynth: any; sfontBin: ArrayBuffer }> {
 
 export class midiCodecHandler implements FormatHandler {
   public name = "miditextcodec";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [];
   public ready = false;
 
@@ -284,6 +285,7 @@ export class midiCodecHandler implements FormatHandler {
 
 export class midiSynthHandler implements FormatHandler {
   public name = "midi";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [];
   public ready = false;
 

@@ -9,6 +9,10 @@ export default defineConfig({
     exclude: ["@ffmpeg/ffmpeg", "@sqlite.org/sqlite-wasm", "@yowasp/clang"],
   },
   base: "./",
+  worker: {
+    format: "es",
+    plugins: () => [tsconfigPaths()],
+  },
   resolve: {
     alias: {
       node_modules: fileURLToPath(new URL("./node_modules", import.meta.url)),

@@ -5,6 +5,7 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class otaHandler implements FormatHandler {
   public name: string = "ota";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

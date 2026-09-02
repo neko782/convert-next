@@ -5,6 +5,7 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class xcursorHandler implements FormatHandler {
   public name: string = "xcursor";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     CommonFormats.PNG.builder("png")
       .markLossless()

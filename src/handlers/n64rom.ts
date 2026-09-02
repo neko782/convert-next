@@ -17,6 +17,7 @@ type N64Order = "z64" | "n64" | "v64";
 
 class n64romHandler implements FormatHandler {
   public name: string = "n64rom";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Nintendo 64 ROM (Big Endian)",

@@ -880,6 +880,7 @@ const MOD_TILE_COLORS: [number, number, number][] = [
 
 class terrariaWldHandler implements FormatHandler {
   public name: string = "terrariaWld";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

@@ -874,6 +874,7 @@ function decodeVTF(bytes: Uint8Array): DecodedImage {
 
 class vtfHandler implements FormatHandler {
   public name: string = "vtf";
+  public readonly requiresMainThread = true;
 
   public supportedFormats: FileFormat[] = [
     {

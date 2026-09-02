@@ -5,6 +5,7 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class cybergrindHandler implements FormatHandler {
   public name: string = "cybergrind";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

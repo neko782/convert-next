@@ -5,6 +5,7 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class xcfHandler implements FormatHandler {
   public name: string = "xcf";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

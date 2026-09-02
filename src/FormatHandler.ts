@@ -28,6 +28,20 @@ export interface FileFormat extends IFormatDefinition {
   lossless?: boolean;
 }
 
+export function cloneFormat(format: FileFormat): FileFormat {
+  return {
+    name: format.name,
+    format: format.format,
+    extension: format.extension,
+    mime: format.mime,
+    category: format.category,
+    from: format.from,
+    to: format.to,
+    internal: format.internal,
+    lossless: format.lossless,
+  };
+}
+
 /**
  * Class containing format definition and method used to produce FileFormat
  * that can be supported by handlers.
@@ -164,6 +178,8 @@ export interface FileData {
 export interface FormatHandler {
   /** Name of the tool being wrapped (e.g. "FFmpeg"). */
   name: string;
+  /** Whether this handler depends on DOM or other main-thread-only APIs. */
+  requiresMainThread?: boolean;
   /** List of supported input/output {@link FileFormat}s. */
   supportedFormats?: FileFormat[];
 

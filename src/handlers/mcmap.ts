@@ -78,6 +78,7 @@ const base_colours = [
 
 class mcMapHandler implements FormatHandler {
   public name: string = "mcMap";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

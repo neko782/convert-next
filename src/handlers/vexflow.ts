@@ -6,6 +6,7 @@ import { buildMidi, addNote } from "./midi/midifilelib.js";
 
 class VexFlowHandler implements FormatHandler {
   public name: string = "VexFlow";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
   private static fontsLoaded = false;

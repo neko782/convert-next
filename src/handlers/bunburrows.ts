@@ -10,6 +10,7 @@ const COLOR_BUNNY = [255, 255, 255];
 
 class bunburrowsHandler implements FormatHandler {
   public name: string = "bunburrows";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

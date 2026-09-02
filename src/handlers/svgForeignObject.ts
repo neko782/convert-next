@@ -3,6 +3,7 @@ import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 
 class svgForeignObjectHandler implements FormatHandler {
   public name: string = "svgForeignObject";
+  public readonly requiresMainThread = true;
 
   public supportedFormats: FileFormat[] = [
     CommonFormats.HTML.supported("html", true, false),

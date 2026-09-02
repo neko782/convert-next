@@ -7,6 +7,7 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class meydaHandler implements FormatHandler {
   public name: string = "meyda";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     // Lossy reconstruction due to 2 channel encoding
     CommonFormats.PNG.supported("image", true, true),

@@ -149,6 +149,7 @@ export function extractBestPngFromIcns(icnsBytes: Uint8Array): Uint8Array {
 
 class icnsHandler implements FormatHandler {
   public name: string = "icns";
+  public readonly requiresMainThread = true;
   public ready: boolean = false;
   public supportedFormats: FileFormat[] = [
     CommonFormats.PNG.supported("png", true, true, true),

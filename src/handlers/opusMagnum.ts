@@ -945,6 +945,7 @@ export class opusMagnumMainHandler implements FormatHandler {
 // Image-to-molecule handler
 export class opusMagnumITMHandler implements FormatHandler {
   public name: string = "opusMagnumITM";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

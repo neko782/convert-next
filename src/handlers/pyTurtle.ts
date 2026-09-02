@@ -28,6 +28,7 @@ function createContainer(svg: string) {
 
 class pyTurtleHandler implements FormatHandler {
   public name: string = "pyturtle";
+  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 

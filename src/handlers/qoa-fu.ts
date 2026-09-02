@@ -48,6 +48,7 @@ class uint8ArrayQOAEncoder extends QOAEncoder {
 
 class qoaFuHandler implements FormatHandler {
   public name: string = "qoa-fu";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Quite OK Audio",

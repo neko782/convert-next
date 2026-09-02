@@ -84,6 +84,7 @@ const SAMPLE_RATE = 48000;
 
 class libopenmptHandler implements FormatHandler {
   public name: string = "libopenmpt";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [];
   public ready: boolean = false;
 

@@ -15,6 +15,7 @@ import {
 import { signal } from "@preact/signals";
 import { Mode, ModeEnum } from "./ui/ModeStore.js";
 import { ProgressStore } from "./ui/ProgressStore.js";
+import { convertInWorker } from "./ConversionWorkerClient.js";
 
 type FileRecord = Record<`${string}-${string}`, File>;
 
@@ -163,13 +164,26 @@ async function attemptConvertPath(
 
       files = (
         await Promise.all([
-          handler.doConvert(
-            files,
-            inputFormat,
-            path[i + 1].format,
-            undefined,
-            ctx,
-          ),
+          (async () => {
+            if (handler.requiresMainThread) {
+              return handler.doConvert(
+                files,
+                inputFormat,
+                path[i + 1].format,
+                undefined,
+                ctx,
+              );
+            }
+
+            return convertInWorker(
+              handler,
+              files,
+              inputFormat,
+              path[i + 1].format,
+              undefined,
+              ctx,
+            );
+          })(),
           new Promise((resolve) =>
             requestAnimationFrame(() => requestAnimationFrame(resolve)),
           ),

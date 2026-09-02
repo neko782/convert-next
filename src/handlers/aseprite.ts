@@ -504,6 +504,7 @@ function decodeAseprite(bytes: Uint8Array): ParsedAseprite {
 
 class asepriteHandler implements FormatHandler {
   public name: string = "aseprite";
+  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Aseprite Sprite",
