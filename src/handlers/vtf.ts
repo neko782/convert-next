@@ -874,7 +874,6 @@ function decodeVTF(bytes: Uint8Array): DecodedImage {
 
 class vtfHandler implements FormatHandler {
   public name: string = "vtf";
-  public readonly requiresMainThread = true;
 
   public supportedFormats: FileFormat[] = [
     {
@@ -893,13 +892,13 @@ class vtfHandler implements FormatHandler {
     CommonFormats.WEBP.supported("webp", false, true),
   ];
 
-  #canvas?: HTMLCanvasElement;
-  #ctx?: CanvasRenderingContext2D;
+  #canvas?: OffscreenCanvas;
+  #ctx?: OffscreenCanvasRenderingContext2D;
 
   public ready: boolean = false;
 
   async init() {
-    this.#canvas = document.createElement("canvas");
+    this.#canvas = new OffscreenCanvas(1, 1);
     this.#ctx = this.#canvas.getContext("2d") || undefined;
     this.ready = true;
   }
@@ -924,12 +923,10 @@ class vtfHandler implements FormatHandler {
       );
       this.#ctx.putImageData(imageData, 0, 0);
 
-      const bytes: Uint8Array = await new Promise((resolve, reject) => {
-        this.#canvas!.toBlob((blob) => {
-          if (!blob) return reject("Canvas output failed");
-          blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-        }, outputFormat.mime);
+      const blob = await this.#canvas.convertToBlob({
+        type: outputFormat.mime,
       });
+      const bytes = new Uint8Array(await blob.arrayBuffer());
       const name =
         inputFile.name.split(".").slice(0, -1).join(".") +
         "." +

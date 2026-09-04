@@ -120,7 +120,6 @@ class dummyHandler implements FormatHandler {
       lossless: false,
     },
   ];
-  // public readonly requiresMainThread = true; // set this if you require non-web worker APIs like DOM or audio.
   public ready: boolean = false;
 
   async init() {
@@ -148,6 +147,7 @@ There are a few additional things that I want to point out in particular:
 - The handler is responsible for setting the output file's name. This is done to allow for flexibility in rare cases where the _full_ file name matters. Of course, in most cases, you'll only have to swap the file extension.
 - The handler is also responsible for ensuring that any byte buffers that enter or exit the handler _do not get mutated_. If necessary, clone the buffer by wrapping it in `new Uint8Array()`.
 - When handling MIME types, run them through [normalizeMimeType](src/normalizeMimeType.ts) first. One file can have multiple valid MIME types, which isn't great when you're trying to match them algorithmically.
+- Your handler may run in a web worker. Try to not use DOM APIs (ex. OffscreenCanvas instead of HTMLCanvasElement) and, as a last resort, use `requiresMainThread`.
 - When implementing/suggesting a new file format, please treat the file as the media that it represents, not the data that it contains. For example, if you were making an SVG handler, you should treat the file as an _image_, not as XML. In other words, avoid simple "binary waterfalls", as they're not semantically meaningful.
 
 ### Testing

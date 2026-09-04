@@ -5,12 +5,11 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class cybergrindHandler implements FormatHandler {
   public name: string = "cybergrind";
-  public readonly requiresMainThread = true;
   public supportedFormats?: FileFormat[];
   public ready: boolean = false;
 
-  #canvas?: HTMLCanvasElement;
-  #ctx?: CanvasRenderingContext2D;
+  #canvas?: OffscreenCanvas;
+  #ctx?: OffscreenCanvasRenderingContext2D;
 
   async init() {
     this.supportedFormats = [
@@ -28,7 +27,7 @@ class cybergrindHandler implements FormatHandler {
       },
     ];
 
-    this.#canvas = document.createElement("canvas");
+    this.#canvas = new OffscreenCanvas(1, 1);
     this.#ctx = this.#canvas.getContext("2d") || undefined;
 
     this.ready = true;
@@ -56,17 +55,13 @@ class cybergrindHandler implements FormatHandler {
       const blob = new Blob([file.bytes as BlobPart], {
         type: inputFormat.mime,
       });
-      const image = new Image();
-      await new Promise((resolve, reject) => {
-        image.addEventListener("load", resolve);
-        image.addEventListener("error", reject);
-        image.src = URL.createObjectURL(blob);
-      });
+      const image = await createImageBitmap(blob);
 
       // make canvas with 16x16
       this.#canvas.width = 16;
       this.#canvas.height = 16;
       this.#ctx.drawImage(image, 0, 0, 16, 16);
+      image.close();
       const pixels = this.#ctx.getImageData(0, 0, 16, 16);
 
       // mcmap's canvas logic used as a base!

@@ -5,7 +5,6 @@ import CommonFormats, { Category } from "src/CommonFormats.ts";
 
 class bsorHandler implements FormatHandler {
   public name: string = "bsor";
-  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Beat Saber Open Replay",
@@ -53,17 +52,11 @@ class bsorHandler implements FormatHandler {
               replay,
               640,
               480,
-              async (renderer) => {
-                const bytes: Uint8Array = await new Promise(
-                  (resolve, reject) => {
-                    renderer.domElement.toBlob((blob) => {
-                      if (!blob) return reject("Canvas output failed");
-                      blob
-                        .arrayBuffer()
-                        .then((buf) => resolve(new Uint8Array(buf)));
-                    }, outputFormat.mime);
-                  },
-                );
+              async (canvas) => {
+                const blob = await canvas.convertToBlob({
+                  type: outputFormat.mime,
+                });
+                const bytes = new Uint8Array(await blob.arrayBuffer());
                 outputs.push({
                   name:
                     file.name.split(".")[0] +

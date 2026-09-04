@@ -149,7 +149,6 @@ export function extractBestPngFromIcns(icnsBytes: Uint8Array): Uint8Array {
 
 class icnsHandler implements FormatHandler {
   public name: string = "icns";
-  public readonly requiresMainThread = true;
   public ready: boolean = false;
   public supportedFormats: FileFormat[] = [
     CommonFormats.PNG.supported("png", true, true, true),
@@ -160,11 +159,11 @@ class icnsHandler implements FormatHandler {
       .markLossless(false),
   ];
 
-  #canvas?: HTMLCanvasElement;
-  #ctx?: CanvasRenderingContext2D;
+  #canvas?: OffscreenCanvas;
+  #ctx?: OffscreenCanvasRenderingContext2D;
 
   async init() {
-    this.#canvas = document.createElement("canvas");
+    this.#canvas = new OffscreenCanvas(1, 1);
     this.#ctx = this.#canvas.getContext("2d") || undefined;
     if (!this.#ctx)
       throw new InitializationError("Failed to initialize canvas context.");
@@ -183,12 +182,7 @@ class icnsHandler implements FormatHandler {
     this.#ctx.clearRect(0, 0, size, size);
     this.#ctx.drawImage(bitmap, 0, 0, size, size);
 
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      this.#canvas!.toBlob((output) => {
-        if (!output) return reject("Failed to encode canvas to PNG.");
-        resolve(output);
-      }, "image/png");
-    });
+    const blob = await this.#canvas.convertToBlob({ type: "image/png" });
 
     return new Uint8Array(await blob.arrayBuffer());
   }

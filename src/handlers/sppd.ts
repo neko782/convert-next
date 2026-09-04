@@ -188,7 +188,6 @@ const wallPortalMaterial = new THREE.MeshLambertMaterial({ color: 0x505050 });
 
 class sppdHandler implements FormatHandler {
   public name: string = "sppd";
-  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Portal 2 Demo File",
@@ -217,7 +216,8 @@ class sppdHandler implements FormatHandler {
     0.1,
     4096,
   );
-  private renderer = new THREE.WebGLRenderer();
+  private canvas?: OffscreenCanvas;
+  private renderer?: THREE.WebGLRenderer;
 
   private ambientLight = new THREE.AmbientLight(0xffffff, 1);
   private pointLight = new THREE.PointLight(0xffffff, 1e5, 4096);
@@ -538,7 +538,19 @@ class sppdHandler implements FormatHandler {
   }
 
   async init() {
-    this.renderer.setSize(this.renderBounds.width, this.renderBounds.height);
+    this.canvas = new OffscreenCanvas(
+      this.renderBounds.width,
+      this.renderBounds.height,
+    );
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      preserveDrawingBuffer: true,
+    });
+    this.renderer.setSize(
+      this.renderBounds.width,
+      this.renderBounds.height,
+      false,
+    );
     this.scene.add(this.ambientLight);
     this.scene.add(this.pointLight);
 
@@ -552,7 +564,9 @@ class sppdHandler implements FormatHandler {
   ): Promise<FileData[]> {
     const outputFiles: FileData[] = [];
 
-    if (!this.ready) throw new InitializationError("Handler not initialized.");
+    if (!this.ready || !this.canvas || !this.renderer)
+      throw new InitializationError("Handler not initialized.");
+    const { canvas, renderer } = this;
     if (inputFormat.format !== "dem")
       throw new TypeError(`Unsupported input format: ${inputFormat.internal}`);
 
@@ -590,14 +604,12 @@ class sppdHandler implements FormatHandler {
         new Demo(inputFile.bytes, {
           onTick: async (demo: Demo) => {
             await this.playbackTickHandler(demo);
-            this.renderer.render(this.scene, this.camera);
+            renderer.render(this.scene, this.camera);
 
-            const bytes: Uint8Array = await new Promise((resolve, reject) => {
-              this.renderer.domElement.toBlob((blob) => {
-                if (!blob) return reject("Canvas output failed");
-                blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-              }, outputFormat.mime);
+            const blob = await canvas.convertToBlob({
+              type: outputFormat.mime,
             });
+            const bytes = new Uint8Array(await blob.arrayBuffer());
             const name =
               inputFile.name.split(".").slice(0, -1).join(".") +
               "_" +

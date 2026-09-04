@@ -1,5 +1,6 @@
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
+import { InitializationError } from "src/errors.ts";
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -8,7 +9,6 @@ import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 
 class threejsHandler implements FormatHandler {
   public name: string = "threejs";
-  public readonly requiresMainThread = true;
   public supportedFormats = [
     {
       name: "GL Transmission Format Binary",
@@ -49,12 +49,32 @@ class threejsHandler implements FormatHandler {
   ];
   public ready: boolean = false;
 
+  private renderBounds = { width: 960, height: 540 };
+
   private scene = new THREE.Scene();
-  private camera = new THREE.PerspectiveCamera(90, 16 / 9, 0.1, 4096);
-  private renderer = new THREE.WebGLRenderer();
+  private camera = new THREE.PerspectiveCamera(
+    90,
+    this.renderBounds.width / this.renderBounds.height,
+    0.1,
+    4096,
+  );
+  private canvas?: OffscreenCanvas;
+  private renderer?: THREE.WebGLRenderer;
 
   async init() {
-    this.renderer.setSize(960, 540);
+    this.canvas = new OffscreenCanvas(
+      this.renderBounds.width,
+      this.renderBounds.height,
+    );
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      preserveDrawingBuffer: true,
+    });
+    this.renderer.setSize(
+      this.renderBounds.width,
+      this.renderBounds.height,
+      false,
+    );
     this.ready = true;
   }
 
@@ -63,6 +83,9 @@ class threejsHandler implements FormatHandler {
     inputFormat: FileFormat,
     outputFormat: FileFormat,
   ): Promise<FileData[]> {
+    if (!this.canvas || !this.renderer)
+      throw new InitializationError("Handler not initialized.");
+
     const outputFiles: FileData[] = [];
 
     for (const inputFile of inputFiles) {
@@ -101,12 +124,10 @@ class threejsHandler implements FormatHandler {
       this.renderer.render(this.scene, this.camera);
       this.scene.remove(object);
 
-      const bytes: Uint8Array = await new Promise((resolve, reject) => {
-        this.renderer.domElement.toBlob((blob) => {
-          if (!blob) return reject("Canvas output failed");
-          blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-        }, outputFormat.mime);
+      const output = await this.canvas.convertToBlob({
+        type: outputFormat.mime,
       });
+      const bytes = new Uint8Array(await output.arrayBuffer());
       const name =
         inputFile.name.split(".").slice(0, -1).join(".") +
         "." +

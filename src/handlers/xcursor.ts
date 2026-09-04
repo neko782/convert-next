@@ -5,7 +5,6 @@ import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class xcursorHandler implements FormatHandler {
   public name: string = "xcursor";
-  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     CommonFormats.PNG.builder("png")
       .markLossless()
@@ -26,11 +25,11 @@ class xcursorHandler implements FormatHandler {
   ];
   public ready: boolean = false;
 
-  #canvas?: HTMLCanvasElement;
-  #ctx?: CanvasRenderingContext2D;
+  #canvas?: OffscreenCanvas;
+  #ctx?: OffscreenCanvasRenderingContext2D;
 
   async init() {
-    this.#canvas = document.createElement("canvas");
+    this.#canvas = new OffscreenCanvas(1, 1);
     const ctx = this.#canvas.getContext("2d");
     if (!ctx)
       throw new InitializationError("Failed to create 2D rendering context.");
@@ -101,12 +100,10 @@ class xcursorHandler implements FormatHandler {
         );
         this.#ctx.putImageData(imageData, 0, 0);
 
-        const bytes: Uint8Array = await new Promise((resolve, reject) => {
-          this.#canvas!.toBlob((blob) => {
-            if (!blob) return reject("Canvas output failed.");
-            blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-          }, outputFormat.mime);
+        const blob = await this.#canvas.convertToBlob({
+          type: outputFormat.mime,
         });
+        const bytes = new Uint8Array(await blob.arrayBuffer());
         const name = `${inputFile.name}_${i}.${outputFormat.extension}`;
         outputFiles.push({ bytes, name });
       }

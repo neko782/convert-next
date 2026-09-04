@@ -504,7 +504,6 @@ function decodeAseprite(bytes: Uint8Array): ParsedAseprite {
 
 class asepriteHandler implements FormatHandler {
   public name: string = "aseprite";
-  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Aseprite Sprite",
@@ -522,12 +521,12 @@ class asepriteHandler implements FormatHandler {
     CommonFormats.WEBP.supported("webp", false, true),
   ];
 
-  #canvas?: HTMLCanvasElement;
-  #ctx?: CanvasRenderingContext2D;
+  #canvas?: OffscreenCanvas;
+  #ctx?: OffscreenCanvasRenderingContext2D;
   public ready: boolean = false;
 
   async init() {
-    this.#canvas = document.createElement("canvas");
+    this.#canvas = new OffscreenCanvas(1, 1);
     this.#ctx = this.#canvas.getContext("2d") || undefined;
     this.ready = true;
   }
@@ -555,12 +554,10 @@ class asepriteHandler implements FormatHandler {
       );
       this.#ctx.putImageData(imageData, 0, 0);
 
-      const bytes = await new Promise<Uint8Array>((resolve, reject) => {
-        this.#canvas!.toBlob((blob) => {
-          if (!blob) return reject("Canvas failed to encode output image.");
-          blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-        }, outputFormat.mime);
+      const blob = await this.#canvas.convertToBlob({
+        type: outputFormat.mime,
       });
+      const bytes = new Uint8Array(await blob.arrayBuffer());
 
       const baseName = inputFile.name.includes(".")
         ? inputFile.name.slice(0, inputFile.name.lastIndexOf("."))

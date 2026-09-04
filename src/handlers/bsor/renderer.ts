@@ -3,12 +3,13 @@ import { Vector3, Quaternion, Mesh } from "three";
 
 import * as BSOR from "./replay.ts";
 
-export async function render(replay: BSOR.Replay, width: number, height: number, onFrame: (renderer: THREE.WebGLRenderer) => Promise<void>, onDone: () => Promise<void>) {
+export async function render(replay: BSOR.Replay, width: number, height: number, onFrame: (canvas: OffscreenCanvas) => Promise<void>, onDone: () => Promise<void>) {
 	const scene = new THREE.Scene();
 	const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 
-	const renderer = new THREE.WebGLRenderer();
-	renderer.setSize(width, height);
+	const canvas = new OffscreenCanvas(width, height);
+	const renderer = new THREE.WebGLRenderer({ canvas, preserveDrawingBuffer: true });
+	renderer.setSize(width, height, false);
 
 	const frames = [...replay.frames].sort((a, b) => a.time - b.time);
 	let frameIndex = 0;
@@ -146,7 +147,7 @@ export async function render(replay: BSOR.Replay, width: number, height: number,
 		notes = notes.filter(n => !n.removalQueued);
 
 		renderer.render(scene, camera);
-		await onFrame(renderer);
+		await onFrame(canvas);
 
 		if(frameIndex >= frames.length) {
 			// cleanup
@@ -159,6 +160,7 @@ export async function render(replay: BSOR.Replay, width: number, height: number,
 			dotGeometry.dispose();
 			bombGeometry.dispose();
 			bombMaterial.dispose();
+			renderer.dispose();
 			// stop animation
 			await onDone();
       break;

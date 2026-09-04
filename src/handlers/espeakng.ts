@@ -7,7 +7,6 @@ import espeakWorkerUrl from "third_party/generated/espeakng.js/js/espeakng.worke
 
 export class espeakngHandler implements FormatHandler {
   public name: string = "espeakng";
-  public readonly requiresMainThread = true;
   public ready: boolean = true;
   #tts: SimpleTTS | undefined = undefined;
 
@@ -47,20 +46,12 @@ export class espeakngHandler implements FormatHandler {
     const tts = await this.getTTS();
     return Promise.all(
       inputFiles.map(async (file) => {
-        const audio = await new Promise<AudioBuffer>((resolve) => {
+        const samples = await new Promise<Float32Array>((resolve) => {
           tts.speak(
             new TextDecoder().decode(file.bytes),
-            (audio: Float32Array, sampleRate: number) => {
-              resolve(
-                SimpleTTS.createAudioBuffer(
-                  audio,
-                  tts.sampleRate,
-                ) as AudioBuffer,
-              );
-            },
+            (audio: Float32Array) => resolve(audio),
           );
         });
-        const samples = audio.getChannelData(0);
         const wav = new WaveFile();
         // Increasing pitch doesn't seem to do anything, so instead we
         // decrease playback rate and increase playback sample rate
