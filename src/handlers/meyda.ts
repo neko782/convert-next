@@ -5,49 +5,25 @@ import CommonFormats from "src/CommonFormats.ts";
 import { WaveFile } from "wavefile";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
+// Sample rate used when synthesizing audio from an image.
+const RENDER_SAMPLE_RATE = 34000;
+
 class meydaHandler implements FormatHandler {
   public name: string = "meyda";
-  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     // Lossy reconstruction due to 2 channel encoding
     CommonFormats.PNG.supported("image", true, true),
     CommonFormats.JPEG.supported("image", true, true),
     CommonFormats.WEBP.supported("image", true, true),
+    CommonFormats.WAV.builder("audio").allowFrom().allowTo(),
   ];
   public ready: boolean = false;
 
-  #audioContext?: AudioContext;
-  #canvas?: HTMLCanvasElement;
-  #ctx?: CanvasRenderingContext2D;
+  #canvas?: OffscreenCanvas;
+  #ctx?: OffscreenCanvasRenderingContext2D;
 
   async init() {
-    const dummy = document.createElement("audio");
-    this.supportedFormats.push(
-      CommonFormats.WAV.builder("audio")
-        .allowFrom(dummy.canPlayType("audio/wav") !== "")
-        .allowTo(),
-    );
-
-    if (dummy.canPlayType("audio/mpeg"))
-      this.supportedFormats.push(
-        // lossless=false, lossy reconstruction
-        CommonFormats.MP3.supported("audio", true, false),
-      );
-    if (dummy.canPlayType("audio/ogg"))
-      this.supportedFormats.push(
-        CommonFormats.OGG.builder("audio").allowFrom(),
-      );
-    if (dummy.canPlayType("audio/flac"))
-      this.supportedFormats.push(
-        CommonFormats.FLAC.builder("audio").allowFrom(),
-      );
-    dummy.remove();
-
-    this.#audioContext = new AudioContext({
-      sampleRate: 34000,
-    });
-
-    this.#canvas = document.createElement("canvas");
+    this.#canvas = new OffscreenCanvas(1, 1);
     const ctx = this.#canvas.getContext("2d");
     if (!ctx) throw new Error("Failed to create 2D rendering context.");
     this.#ctx = ctx;
@@ -60,7 +36,7 @@ class meydaHandler implements FormatHandler {
     inputFormat: FileFormat,
     outputFormat: FileFormat,
   ): Promise<FileData[]> {
-    if (!this.ready || !this.#audioContext || !this.#canvas || !this.#ctx) {
+    if (!this.ready || !this.#canvas || !this.#ctx) {
       throw new InitializationError("Handler not initialized.");
     }
     const outputFiles: FileData[] = [];
@@ -84,14 +60,7 @@ class meydaHandler implements FormatHandler {
         const blob = new Blob([inputFile.bytes as BlobPart], {
           type: inputFormat.mime,
         });
-        const url = URL.createObjectURL(blob);
-
-        const image = new Image();
-        await new Promise((resolve, reject) => {
-          image.addEventListener("load", resolve);
-          image.addEventListener("error", reject);
-          image.src = url;
-        });
+        const image = await createImageBitmap(blob);
 
         /**
          * After an image-audio-image round-trip, the output height gets
@@ -99,19 +68,18 @@ class meydaHandler implements FormatHandler {
          * stretch the image width here to maintain the aspect ratio.
          * For normal audio files, this shouldn't change anything.
          */
-        const imageHeight = image.naturalHeight;
-        const imageWidth = Math.round(
-          image.naturalWidth * (hopSize / imageHeight),
-        );
+        const imageHeight = image.height;
+        const imageWidth = Math.round(image.width * (hopSize / imageHeight));
 
         this.#canvas.width = imageWidth;
         this.#canvas.height = imageHeight;
         this.#ctx.drawImage(image, 0, 0, imageWidth, imageHeight);
+        image.close();
 
         const imageData = this.#ctx.getImageData(0, 0, imageWidth, imageHeight);
         const pixelBuffer = imageData.data as Uint8ClampedArray;
 
-        const sampleRate = this.#audioContext.sampleRate;
+        const sampleRate = RENDER_SAMPLE_RATE;
 
         const audioData = new Float32Array(imageWidth * hopSize + bufferSize);
 
@@ -193,14 +161,20 @@ class meydaHandler implements FormatHandler {
       }
     } else {
       for (const inputFile of inputFiles) {
-        const inputBytes = new Uint8Array(inputFile.bytes);
-        const audioData = await this.#audioContext.decodeAudioData(
-          inputBytes.buffer,
-        );
+        const wav = new WaveFile(new Uint8Array(inputFile.bytes));
+        const fmt = wav.fmt as { sampleRate: number };
+        wav.toBitDepth("32f");
+        // De-interleaved; use the first channel only.
+        const channelSamples = wav.getSamples(
+          false,
+          Float32Array,
+        ) as unknown as Float32Array | Float32Array[];
+        const samples = Array.isArray(channelSamples)
+          ? channelSamples[0]
+          : channelSamples;
 
         Meyda.bufferSize = bufferSize;
-        Meyda.sampleRate = audioData.sampleRate;
-        const samples = audioData.getChannelData(0);
+        Meyda.sampleRate = fmt.sampleRate;
         const imageWidth = Math.max(
           1,
           Math.ceil((samples.length - bufferSize) / hopSize) + 1,
@@ -256,12 +230,10 @@ class meydaHandler implements FormatHandler {
           this.#ctx.putImageData(imageData, i, 0);
         }
 
-        const bytes: Uint8Array = await new Promise((resolve, reject) => {
-          this.#canvas!.toBlob((blob) => {
-            if (!blob) return reject("Canvas output failed.");
-            blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-          }, outputFormat.mime);
+        const outBlob = await this.#canvas.convertToBlob({
+          type: outputFormat.mime,
         });
+        const bytes = new Uint8Array(await outBlob.arrayBuffer());
         const name =
           inputFile.name.split(".").slice(0, -1).join(".") +
           "." +

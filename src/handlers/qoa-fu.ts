@@ -48,7 +48,6 @@ class uint8ArrayQOAEncoder extends QOAEncoder {
 
 class qoaFuHandler implements FormatHandler {
   public name: string = "qoa-fu";
-  public readonly requiresMainThread = true;
   public supportedFormats: FileFormat[] = [
     {
       name: "Quite OK Audio",
@@ -61,32 +60,11 @@ class qoaFuHandler implements FormatHandler {
       category: Category.AUDIO,
       lossless: false,
     },
+    CommonFormats.WAV.builder("wav").allowFrom(true).allowTo(true),
   ];
   public ready: boolean = false;
 
-  #audioContext?: AudioContext;
-
   async init() {
-    const dummy = document.createElement("audio");
-    if (dummy.canPlayType("audio/wav"))
-      this.supportedFormats.push(
-        CommonFormats.WAV.builder("wav").allowFrom(true).allowTo(true),
-      );
-    if (dummy.canPlayType("audio/mpeg"))
-      this.supportedFormats.push(
-        CommonFormats.MP3.builder("mp3").allowFrom(true).allowTo(false),
-      );
-    if (dummy.canPlayType("audio/ogg"))
-      this.supportedFormats.push(
-        CommonFormats.OGG.builder("ogg").allowFrom(true).allowTo(false),
-      );
-    if (dummy.canPlayType("audio/flac"))
-      this.supportedFormats.push(
-        CommonFormats.FLAC.builder("flac").allowFrom(true).allowTo(false),
-      );
-    dummy.remove();
-
-    this.#audioContext = new AudioContext();
     this.ready = true;
   }
 
@@ -95,7 +73,7 @@ class qoaFuHandler implements FormatHandler {
     inputFormat: FileFormat,
     outputFormat: FileFormat,
   ): Promise<FileData[]> {
-    if (!this.ready || !this.#audioContext) {
+    if (!this.ready) {
       throw new InitializationError("Handler not initialized.");
     }
 
@@ -147,50 +125,37 @@ class qoaFuHandler implements FormatHandler {
         outputFiles.push({ bytes: wavBytes, name });
       }
     } else {
-      // any audio => QOA
+      // WAV => QOA
       for (const inputFile of inputFiles) {
-        const inputBytes = new Uint8Array(inputFile.bytes);
-        const audioData = await this.#audioContext?.decodeAudioData(
-          inputBytes.buffer,
-        );
+        const wav = new WaveFile(new Uint8Array(inputFile.bytes));
+        const fmt = wav.fmt as { numChannels: number; sampleRate: number };
+        const channels = fmt.numChannels;
+        const sampleRate = fmt.sampleRate;
+        // QOA is 16-bit; let wavefile handle the conversion from any depth.
+        wav.toBitDepth("16");
+        const interleaved = wav.getSamples(
+          true,
+          Int16Array,
+        ) as unknown as Int16Array;
+        const totalSamples = Math.floor(interleaved.length / channels);
 
         const encoder = new uint8ArrayQOAEncoder(
-          (audioData.length * audioData.numberOfChannels * 4) / 8 + 4096,
+          (totalSamples * channels * 4) / 8 + 4096,
         );
-        if (
-          !encoder.writeHeader(
-            audioData.length,
-            audioData.numberOfChannels,
-            audioData.sampleRate,
-          )
-        ) {
+        if (!encoder.writeHeader(totalSamples, channels, sampleRate)) {
           throw new Error("Failed to write QOA header.");
         }
 
-        const channelData: Float32Array[] = [];
-        for (let c = 0; c < audioData.numberOfChannels; c++) {
-          channelData.push(audioData.getChannelData(c));
-        }
-
         let offset = 0;
-        while (offset < audioData.length) {
+        while (offset < totalSamples) {
           const frameSamples = Math.min(
             QOABase.MAX_FRAME_SAMPLES,
-            audioData.length - offset,
+            totalSamples - offset,
           );
-          const frameBuffer = new Int16Array(
-            frameSamples * audioData.numberOfChannels,
+          const frameBuffer = interleaved.subarray(
+            offset * channels,
+            (offset + frameSamples) * channels,
           );
-
-          let index = 0;
-          for (let i = 0; i < frameSamples; i++) {
-            for (let c = 0; c < audioData.numberOfChannels; c++) {
-              let sample = channelData[c][offset + i];
-              sample = sample < -1 ? -1 : sample > 1 ? 1 : sample;
-              frameBuffer[index++] =
-                sample < 0 ? sample * 32768 : sample * 32767;
-            }
-          }
 
           if (!encoder.writeFrame(frameBuffer, frameSamples)) {
             throw new Error("Failed to write QOA frame.");
