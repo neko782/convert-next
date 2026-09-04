@@ -29,8 +29,8 @@
      */
     "baseUrl": ".",
     "paths": {
-      "qoi-fu": ["./src/handlers/qoi-fu/transpiled/QOI.js"],
-      "qoa-fu": ["./src/handlers/qoa-fu/transpiled/QOA.js"],
+      "qoi-fu": ["./third_party/generated/qoi-fu/transpiled/QOI.js"],
+      "qoa-fu": ["./third_party/generated/qoa-fu/transpiled/QOA.js"],
       // this is driving me nuts
       "*": ["./*"]
     },
@@ -40,14 +40,5 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
-  "include": ["src"],
-  "exclude": [
-    "src/handlers/qoi-fu/**/*",
-    "src/handlers/qoa-fu/**/*",
-    "src/handlers/sppd/**/*",
-    "src/handlers/espeakng.js/**/*",
-    "src/handlers/image-to-txt/src/app.ts",
-    "src/handlers/image-to-txt/src/generate.ts",
-    "src/handlers/terraria-wld-parser/**/*"
-  ]
+  "include": ["src"]
 }

@@ -44,7 +44,7 @@ Though please note, "converting X to Y doesn't work" is **not** a bug report. Ho
 
 ### Local development (Bun + Vite)
 
-1. Clone this repository _**WITH SUBMODULES**_. You can use `git clone --recursive https://github.com/p2r3/convert` for that. Omitting submodules will leave you missing a few dependencies.
+1. Clone this repository with `git clone https://github.com/p2r3/convert`.
 2. Install [Bun](https://bun.sh/).
 3. Run `bun install` to install dependencies.
 4. Run `bunx vite` to start the development server.
@@ -162,8 +162,7 @@ Not every handler needs a dedicated unit test, but handlers with non-trivial cus
 If your tool requires an external dependency (which it likely does), there are currently two well-established ways of going about this:
 
 - If it's an `npm` package, just install it to the project like you normally would.
-- If it's a Git repository, add it as a submodule to [src/handlers](src/handlers).
-- If neither of the above are available, then **as a last resort**, you may create a folder with the required assets under `src/handlers/handlerName`.
+- If it's a Git repository, add a pinned `http_archive` to [MODULE.bazel](MODULE.bazel) with a `third_party/<name>.BUILD.bazel` listing the files you need, plus a `vendor_tree` target in [third_party/BUILD.bazel](third_party/BUILD.bazel). Import the files as `third_party/generated/<name>/...`.
 
 **Please try to avoid CDNs (Content Delivery Networks).** They're really cool on paper, but they don't work well with TypeScript, and each one introduces a tiny bit of instability. For a project that leans heavily on external dependencies, those bits of instability can add up fast.
 

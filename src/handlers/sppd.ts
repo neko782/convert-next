@@ -3,8 +3,8 @@ import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import * as THREE from "three";
 import * as CSG from "three-bvh-csg";
 
-import { Demo } from "./sppd/sppd/Demo.ts";
-import { Vector } from "./sppd/sppd/Vector.ts";
+import { Demo } from "third_party/generated/sppd/sppd/Demo.ts";
+import { Vector } from "third_party/generated/sppd/sppd/Vector.ts";
 
 import CommonFormats, { Category } from "src/CommonFormats.ts";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";

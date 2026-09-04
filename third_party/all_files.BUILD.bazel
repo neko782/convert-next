@@ -1,0 +1,14 @@
+# Shared BUILD file for the third-party repositories in MODULE.bazel: exposes
+# every file in the archive so //third_party can copy it into generated/.
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "srcs",
+    srcs = glob(
+        ["**"],
+        exclude = [
+            "BUILD.bazel",
+            "REPO.bazel",
+        ],
+    ),
+)

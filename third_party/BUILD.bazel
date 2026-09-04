@@ -1,8 +1,93 @@
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+
 package(default_visibility = ["//visibility:public"])
 
-genrule(
+# Third-party code (formerly git submodules), pinned in MODULE.bazel. Each
+# target copies the whole repository into generated/<name>; src/handlers
+# imports it as "third_party/generated/<name>/...".
+
+copy_to_directory(
+    name = "envelope",
+    srcs = ["@envelope//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/envelope",
+)
+
+copy_to_directory(
+    name = "espeakng_js",
+    srcs = ["@espeakng_js//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/espeakng.js",
+)
+
+copy_to_directory(
+    name = "gimper",
+    srcs = ["@gimper//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/gimper",
+)
+
+copy_to_directory(
+    name = "image_to_txt",
+    srcs = ["@image_to_txt//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/image-to-txt",
+)
+
+copy_to_directory(
+    name = "qoa_fu",
+    srcs = ["@qoa_fu//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/qoa-fu",
+)
+
+copy_to_directory(
+    name = "qoi_fu",
+    srcs = ["@qoi_fu//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/qoi-fu",
+)
+
+copy_to_directory(
+    name = "rpgmvp_decrypter",
+    srcs = ["@rpgmvp_decrypter//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/rpgmvp-decrypter",
+)
+
+copy_to_directory(
+    name = "sppd",
+    srcs = ["@sppd//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/sppd",
+)
+
+copy_to_directory(
+    name = "terraria_wld_parser",
+    srcs = ["@terraria_wld_parser//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/terraria-wld-parser",
+)
+
+copy_to_directory(
     name = "turbowarp_unpackager",
-    srcs = ["@turbowarp_unpackager//:unpackager.js"],
-    outs = ["generated/turbowarp-unpackager/unpackager.js"],
-    cmd = "cp $< $@",
+    srcs = ["@turbowarp_unpackager//:srcs"],
+    include_external_repositories = ["*"],
+    out = "generated/turbowarp-unpackager",
+)
+
+filegroup(
+    name = "generated",
+    srcs = [
+        ":envelope",
+        ":espeakng_js",
+        ":gimper",
+        ":image_to_txt",
+        ":qoa_fu",
+        ":qoi_fu",
+        ":rpgmvp_decrypter",
+        ":sppd",
+        ":terraria_wld_parser",
+        ":turbowarp_unpackager",
+    ],
 )

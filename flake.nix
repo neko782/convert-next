@@ -96,7 +96,7 @@
             # Work in /tmp since $src is read-only
             cd /tmp
             rm -rf convert project
-            git clone --recurse-submodules https://github.com/p2r3/convert.git project
+            git clone https://github.com/p2r3/convert.git project
             cd project
 
             # Download and install bun

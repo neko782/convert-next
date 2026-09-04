@@ -43,7 +43,7 @@ bun_run(
 # Generated inputs that the source tree expects at these paths.
 GENERATED = [
     ":material_file_icons",
-    "//third_party:turbowarp_unpackager",
+    "//third_party:generated",
 ]
 
 bun_run(

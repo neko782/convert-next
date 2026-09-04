@@ -3,6 +3,7 @@ module(
     version = "0.0.0",
 )
 
+bazel_dep(name = "aspect_bazel_lib", version = "2.21.1")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 
 http_archive = use_repo_rule(
@@ -19,9 +20,87 @@ bun_install(
     package_json = "//:package.json",
 )
 
+# Third-party code. Each archive is pinned to a commit and copied whole into
+# third_party/generated/<name> by //third_party:<name>; src imports it from
+# there.
+# To bump one: change the commit in `urls` and `strip_prefix`, clear
+# `integrity`, build, and paste the hash Bazel prints.
+
+http_archive(
+    name = "envelope",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-kTvwjIwFiHCAntWxQseFnGProOFHzWgHpvEHgFPJJ3g=",
+    strip_prefix = "envelope-2d8bc87d948ccfc391e86724bb0a5d7b1689d5c6",
+    urls = ["https://github.com/p2r3/envelope/archive/2d8bc87d948ccfc391e86724bb0a5d7b1689d5c6.tar.gz"],
+)
+
+http_archive(
+    name = "espeakng_js",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-lYpjkdIkZFBaFWoUD9jWpqjoyiUtRp37kscmdruZuAE=",
+    strip_prefix = "espeakng.js-d889d8b9cb07af4e3edb23e41a88adc1c9918414",
+    urls = ["https://github.com/TheZipCreator/espeakng.js/archive/d889d8b9cb07af4e3edb23e41a88adc1c9918414.tar.gz"],
+)
+
+http_archive(
+    name = "gimper",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-FFg9rXNK91D/BYo8a07O8zw1u2PxOFgwFgiU9b16NGQ=",
+    strip_prefix = "gimper-fe96bd9e8efa33cbb8b23f134207ecf3e6dfecbd",
+    urls = ["https://github.com/ConnorTippets/gimper/archive/fe96bd9e8efa33cbb8b23f134207ecf3e6dfecbd.tar.gz"],
+)
+
+http_archive(
+    name = "image_to_txt",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-e5ViQhEHgtHGllN2a1Jdnbjm11fcxQl4T1SAkGCHk24=",
+    strip_prefix = "image-to-txt-477f5dcd3a699119f471ffeb334bb77795bc3bdd",
+    urls = ["https://github.com/zipsegv/image-to-txt/archive/477f5dcd3a699119f471ffeb334bb77795bc3bdd.tar.gz"],
+)
+
+http_archive(
+    name = "qoa_fu",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-C1o02jCHQ/sEbgU32XqFFBJZHFqQViUTBizNweaSiAM=",
+    strip_prefix = "qoa-fu-521424aec645666d49cac7935b9d2f03354d92e6",
+    urls = ["https://github.com/pfusik/qoa-fu/archive/521424aec645666d49cac7935b9d2f03354d92e6.tar.gz"],
+)
+
+http_archive(
+    name = "qoi_fu",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-a9ehou1AE2HlJ7V68gnMr+Lsk+14J/ZLJnIbaZEhzo0=",
+    strip_prefix = "qoi-fu-d4e5af8d3f3bed953f68dfc9c569690823888140",
+    urls = ["https://github.com/pfusik/qoi-fu/archive/d4e5af8d3f3bed953f68dfc9c569690823888140.tar.gz"],
+)
+
+http_archive(
+    name = "rpgmvp_decrypter",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-o63VGP6bADBUGvfPAb746kXtIWMW9j/9nmT9ePqtsaQ=",
+    strip_prefix = "RPG-Maker-MV-Decrypter-82ccd8c4e1efcd051ab55ad618c320777c77b350",
+    urls = ["https://github.com/ConnorTippets/RPG-Maker-MV-Decrypter/archive/82ccd8c4e1efcd051ab55ad618c320777c77b350.tar.gz"],
+)
+
+http_archive(
+    name = "sppd",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-D8eaZ/0oW8rltz9VsUCijRDn16dNtWutIzsuW23rYBQ=",
+    strip_prefix = "sppd-a9d61795b5b3f2c6d06eda09ea3b31bf239e0498",
+    urls = ["https://github.com/p2r3/sppd/archive/a9d61795b5b3f2c6d06eda09ea3b31bf239e0498.tar.gz"],
+)
+
+http_archive(
+    name = "terraria_wld_parser",
+    build_file = "//third_party:all_files.BUILD.bazel",
+    integrity = "sha256-dPVkb2lTqIfJFN2hHfHNlZIDpx9Jw+JT0p58W4JFMmU=",
+    strip_prefix = "terraria-world-file-ts-e0400bfd5ab855e63185f94f892485faff3249d4",
+    urls = ["https://github.com/ConnorTippets/terraria-world-file-ts/archive/e0400bfd5ab855e63185f94f892485faff3249d4.tar.gz"],
+)
+
 http_archive(
     name = "turbowarp_unpackager",
-    build_file = "//third_party:turbowarp_unpackager.BUILD.bazel",
+    build_file = "//third_party:all_files.BUILD.bazel",
     integrity = "sha256-O7ENLTz5BJbdyim1I9qFqQEEDXB6wDdR3kDt01yNYc4=",
     patch_args = ["-p1"],
     patches = ["//third_party:turbowarp-unpackager-esm.patch"],

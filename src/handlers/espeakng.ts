@@ -1,9 +1,9 @@
 import CommonFormats from "src/CommonFormats.ts";
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
-import { SimpleTTS } from "./espeakng.js/js/espeakng-simple.js";
+import { SimpleTTS } from "third_party/generated/espeakng.js/js/espeakng-simple.js";
 import { WaveFile } from "wavefile";
-import "./espeakng.js/js/espeakng.worker.data?url";
-import espeakWorkerUrl from "./espeakng.js/js/espeakng.worker.js?url";
+import "third_party/generated/espeakng.js/js/espeakng.worker.data?url";
+import espeakWorkerUrl from "third_party/generated/espeakng.js/js/espeakng.worker.js?url";
 
 export class espeakngHandler implements FormatHandler {
   public name: string = "espeakng";

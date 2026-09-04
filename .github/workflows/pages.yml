@@ -28,8 +28,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          submodules: recursive
 
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.19.0

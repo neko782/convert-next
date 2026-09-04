@@ -1,6 +1,6 @@
 import type { FileData, FileFormat, FormatHandler } from "../FormatHandler.ts";
 import CommonFormats, { Category } from "src/CommonFormats.ts";
-import XCF from "./gimper/src/main.js";
+import XCF from "third_party/generated/gimper/src/main.js";
 import { BadMagicError, EOFError, InitializationError } from "src/errors.ts";
 
 class xcfHandler implements FormatHandler {
