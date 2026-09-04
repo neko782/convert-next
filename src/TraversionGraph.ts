@@ -68,6 +68,7 @@ export class TraversionGraph {
   ];
   private categoryAdaptiveCosts: CategoryAdaptiveCost[] = [
     { categories: ["text", "image", "audio"], cost: 15 }, // Text to audio through an image is likely not what the user wants
+    { categories: ["audio", "document", "image"], cost: 15 }, // We don't need a screenshot of an audio embed
     { categories: ["image", "video", "audio"], cost: 10000 }, // Converting from image to audio through video is especially lossy
     { categories: ["audio", "video", "image"], cost: 10000 }, // Converting from audio to image through video is especially lossy
   ];
