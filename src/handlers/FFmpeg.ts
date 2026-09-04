@@ -235,7 +235,7 @@ class FFmpegHandler implements FormatHandler {
           to: flags.includes("E"),
           internal: format,
           category,
-          lossless: ["png", "bmp", "tiff"].includes(format),
+          lossless: ["png", "bmp", "tiff", "wav", "flac"].includes(format),
         });
       }
     }

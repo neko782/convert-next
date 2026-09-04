@@ -162,7 +162,8 @@ class meydaHandler implements FormatHandler {
     } else {
       for (const inputFile of inputFiles) {
         const wav = new WaveFile(new Uint8Array(inputFile.bytes));
-        const fmt = wav.fmt as { sampleRate: number };
+        // Read before toBitDepth(): wavefile resets fmt fields in place.
+        const { sampleRate } = wav.fmt as { sampleRate: number };
         wav.toBitDepth("32f");
         // De-interleaved; use the first channel only.
         const channelSamples = wav.getSamples(
@@ -174,7 +175,7 @@ class meydaHandler implements FormatHandler {
           : channelSamples;
 
         Meyda.bufferSize = bufferSize;
-        Meyda.sampleRate = fmt.sampleRate;
+        Meyda.sampleRate = sampleRate;
         const imageWidth = Math.max(
           1,
           Math.ceil((samples.length - bufferSize) / hopSize) + 1,

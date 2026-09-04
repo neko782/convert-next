@@ -18,11 +18,16 @@ function baseName(name: string): string {
 
 function wavToPcm(bytes: Uint8Array): Pcm {
   const wav = new WaveFile(bytes);
-  const fmt = wav.fmt as { numChannels: number; sampleRate: number };
+  // Read the format *before* toBitDepth(): wavefile rebuilds the fmt chunk
+  // in place and zeroes the old fields.
+  const { sampleRate, numChannels } = wav.fmt as {
+    numChannels: number;
+    sampleRate: number;
+  };
   // 32-bit float, interleaved, normalized to -1..1
   wav.toBitDepth("32f");
   const samples = wav.getSamples(true, Float32Array) as unknown as Float32Array;
-  return { samples, sampleRate: fmt.sampleRate, channels: fmt.numChannels };
+  return { samples, sampleRate, channels: numChannels };
 }
 
 function pcmToWav(pcm: Pcm): Uint8Array {

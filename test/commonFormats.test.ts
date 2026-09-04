@@ -182,7 +182,7 @@ test(
 );
 
 test(
-  "mp3 → png → gif",
+  "mp3 → wav → png → gif",
   async () => {
     const conversion = await attemptConversion(
       ["gaster.mp3"],
@@ -193,6 +193,7 @@ test(
     expect(conversion).toBeTruthy();
     expect(conversion!.path.map((c) => c.format.mime)).toEqual([
       "audio/mpeg",
+      "audio/wav",
       "image/png",
       "image/gif",
     ]);
