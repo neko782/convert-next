@@ -30,9 +30,7 @@
     "baseUrl": ".",
     "paths": {
       "qoi-fu": ["./third_party/generated/qoi-fu/transpiled/QOI.js"],
-      "qoa-fu": ["./third_party/generated/qoa-fu/transpiled/QOA.js"],
-      // this is driving me nuts
-      "*": ["./*"]
+      "qoa-fu": ["./third_party/generated/qoa-fu/transpiled/QOA.js"]
     },
     /**
      * JSX setup

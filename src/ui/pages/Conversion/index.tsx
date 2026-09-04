@@ -126,6 +126,52 @@ function getMatchingFromFormats(
   return matched.size > 0 ? matched : options;
 }
 
+function scoreFormatMatch(
+  format: FileFormat,
+  ext: string,
+  mimeCandidates: string[],
+): number {
+  let score = 0;
+  const e = ext.toLowerCase();
+  const fex = format.extension.toLowerCase();
+  const fmt = format.format.toLowerCase();
+  const intr = format.internal.toLowerCase();
+
+  if (mimeCandidates.includes(format.mime)) score += 4;
+  if (e) {
+    if (fex === e) score += 8;
+    else if (fmt === e) score += 3;
+    else if (intr === e) score += 2;
+    else if (fex.includes(e) || fmt.includes(e) || intr.includes(e)) score += 1;
+  }
+  if (format.lossless) score += 0.5;
+  return score;
+}
+
+function pickBestFromFormat(
+  options: ConversionOptionsMap,
+  files: File[],
+): ConversionOption | null {
+  if (files.length === 0) return null;
+  const file = files[0];
+  const mimeCandidates = getMimeCandidatesForFile(file);
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+
+  let best: ConversionOption | null = null;
+  let bestScore = 0;
+  for (const [format, handler] of options) {
+    if (!format.from) continue;
+    if (!formatMatchesUploadedFile(format, ext, mimeCandidates)) continue;
+    const score = scoreFormatMatch(format, ext, mimeCandidates);
+    // Strictly greater keeps the first entry on ties (handler order = priority)
+    if (score > bestScore) {
+      bestScore = score;
+      best = [format, handler];
+    }
+  }
+  return best;
+}
+
 function downloadFile(bytes: Uint8Array, name: string, mime: string) {
   const blob = new Blob([bytes as BlobPart], { type: mime });
   const link = document.createElement("a");
@@ -145,29 +191,18 @@ export default function Conversion() {
     [allOptions, files],
   );
 
-  const autoAdvance = useMemo(() => {
-    if (!matchingFrom.size) return false;
-    const isSimple = Mode.value === ModeEnum.Simple;
-    if (!isSimple) return matchingFrom.size === 1;
-    const uniqueFormats = new Set<string>();
-    for (const [format] of matchingFrom) {
-      uniqueFormats.add(`${format.mime}|${format.format}`);
-    }
-    return uniqueFormats.size === 1;
-  }, [matchingFrom, Mode.value]);
+  const bestFrom = useMemo(
+    () => pickBestFromFormat(allOptions, files),
+    [allOptions, files],
+  );
 
-  const [step, setStep] = useState<ConversionStep>(() => {
-    if (autoAdvance) return "select-to";
-    return "select-from";
-  });
+  const [step, setStep] = useState<ConversionStep>(() =>
+    bestFrom ? "select-to" : "select-from",
+  );
 
-  const [fromOption, setFromOption] = useState<ConversionOption | null>(() => {
-    if (autoAdvance) {
-      const first = matchingFrom.entries().next().value;
-      return first ? [first[0], first[1]] : null;
-    }
-    return null;
-  });
+  const [fromOption, setFromOption] = useState<ConversionOption | null>(
+    bestFrom,
+  );
 
   const [toOption, setToOption] = useState<ConversionOption | null>(null);
   const [isConverting, setIsConverting] = useState(false);
@@ -175,21 +210,13 @@ export default function Conversion() {
   useEffect(() => {
     if (!firstFile || isConverting) return;
 
-    if (autoAdvance) {
-      const first = matchingFrom.entries().next().value;
-      setFromOption(first ? [first[0], first[1]] : null);
-      setStep("select-to");
-    } else {
-      setFromOption(null);
-      setStep("select-from");
-    }
-
+    setFromOption(bestFrom);
+    setStep(bestFrom ? "select-to" : "select-from");
     setToOption(null);
   }, [firstFile]);
 
   const handleFromSelect = useCallback((option: ConversionOption | null) => {
     setFromOption(option);
-    if (!option) setToOption(null);
   }, []);
 
   const handleToSelect = useCallback((option: ConversionOption | null) => {
@@ -197,28 +224,19 @@ export default function Conversion() {
   }, []);
 
   const handleNext = () => {
-    if (step === "select-from" && fromOption) {
-      setStep("select-to");
-      setToOption(null);
-    }
+    if (step === "select-from" && fromOption) setStep("select-to");
   };
 
   const handleBack = () => {
-    if (step === "select-to") {
-      setStep("select-from");
-      setToOption(null);
-    }
+    if (step === "select-to") setStep("select-from");
   };
 
   const handleFromToClickFrom = () => {
     setStep("select-from");
-    setFromOption(null);
-    setToOption(null);
   };
 
   const handleFromToClickTo = () => {
-    setStep("select-to");
-    setToOption(null);
+    if (fromOption) setStep("select-to");
   };
 
   const removeFile = (key: string) => {
@@ -313,7 +331,8 @@ export default function Conversion() {
     }
   };
 
-  const canProceed = step === "select-from" ? !!fromOption : !!toOption;
+  const canProceed =
+    step === "select-from" ? !!fromOption : !!fromOption && !!toOption;
 
   return (
     <div className="conversion-body">

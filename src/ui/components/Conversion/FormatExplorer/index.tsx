@@ -16,7 +16,7 @@ import {
 import { useDebouncedCallback } from "use-debounce";
 
 import "./index.css";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useMemo, useRef, useState } from "preact/hooks";
 import type { FileFormat } from "src/FormatHandler";
 import type { ConversionOption, ConversionOptionsMap } from "src/main";
 import { Mode, ModeEnum } from "src/ui/ModeStore";
@@ -123,6 +123,27 @@ function generateSearchIndex(
   return index;
 }
 
+/**
+ * Finds the row key in the index that corresponds to the given option.
+ * In simple mode rows are deduplicated by mime|format, so the exact
+ * handler may not be present; fall back to the row with the same mime|format.
+ */
+function findSelectedKey(
+  index: SearchIndex,
+  option: ConversionOption | null,
+  advancedMode: boolean,
+): string | null {
+  if (!option) return null;
+  const [file, handler] = option;
+  const exact = formatExplorerRowKey(file, handler.name);
+  if (index.has(exact)) return exact;
+  if (advancedMode) return null;
+  for (const [key, [f]] of index) {
+    if (f.mime === file.mime && f.format === file.format) return key;
+  }
+  return null;
+}
+
 function filterByCategories(
   options: SearchIndex,
   categories: Set<CategoryEnum>,
@@ -190,7 +211,11 @@ export default function FormatExplorer({
     [originalIndex, searchTerm, activeCategories],
   );
 
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const currentOption = filterDirection === "from" ? fromOption : toOption;
+  const selectedOptionId = useMemo(
+    () => findSelectedKey(originalIndex, currentOption ?? null, isAdvanced),
+    [originalIndex, currentOption, isAdvanced],
+  );
 
   const handleDebounceSearch = useDebouncedCallback((term: string) => {
     setSearchTerm(term);
@@ -198,11 +223,9 @@ export default function FormatExplorer({
 
   const handleOptionSelection = (id: string, option: ConversionOption) => {
     if (id === selectedOptionId) {
-      setSelectedOptionId(null);
       onSelect?.(null);
       return;
     }
-    setSelectedOptionId(id);
     onSelect?.(option);
   };
 
@@ -214,10 +237,6 @@ export default function FormatExplorer({
 
   const noResults = searchResultsIndex.size === 0;
   const filtersActive = hasActiveFilters() || searchTerm !== "";
-
-  useEffect(() => {
-    setSelectedOptionId(null);
-  }, [filterDirection]);
 
   return (
     <div className="format-explorer">
