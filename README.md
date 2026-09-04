@@ -1,4 +1,6 @@
-# [Convert to it!](https://convert.to.it/)
+# Convert-next
+
+My fork of [p2r3's convert](https://github.com/p2r3/convert), focused on fast-paced development and correctness.
 
 **Truly universal online file converter.**
 
@@ -6,13 +8,13 @@ Many online file conversion tools are **boring** and **insecure**. They only all
 
 This is not just terrible for privacy, it's also incredibly lame. What if you _really_ need to convert an AVI video to a PDF document? Try to find an online tool for that, I dare you.
 
-[Convert.to.it](https://convert.to.it/) aims to be a tool that "just works". You're almost _guaranteed_ to get an output - perhaps not always the one you expected, but it'll try its best to not leave you hanging.
+[Convert-next](https://neko782.github.io/convert-next/) aims to be a tool that "just works". You're almost _guaranteed_ to get an output - perhaps not always the one you expected, but it'll try its best to not leave you hanging.
 
 For a semi-technical overview of this tool, check out the video: https://youtu.be/btUbcsTbVA8
 
 ## Usage
 
-1. Go to [convert.to.it](https://convert.to.it/)
+1. Go to https://neko782.github.io/convert-next/
 2. Click the big blue box to add your file (or just drag it on to the window).
 3. An input format should have been automatically selected. If it wasn't, yikes! Try searching for it, or if it's really not there, see the "Issues" section below.
 4. Select an output format from the second list. If you're on desktop, that's the one on the right side. If you're on mobile, it'll be somewhere lower down.
@@ -42,20 +44,19 @@ Though please note, "converting X to Y doesn't work" is **not** a bug report. Ho
 
 ## Deployment
 
-### Local development (Bun + Vite)
+### Local development (Bun + Bazel + Vite)
 
-1. Clone this repository with `git clone https://github.com/p2r3/convert`.
-2. Install [Bun](https://bun.sh/).
-3. Run `bun install` to install dependencies.
-4. Run `bunx vite` to start the development server.
+1. Clone this repository with `git clone https://github.com/neko782/convert-next`.
+2. Install [Bun](https://bun.sh/) (the version in `.bun-version`).
+3. Install [Bazelisk](https://github.com/bazelbuild/bazelisk). It reads `.bazelversion` and fetches the right Bazel automatically.
+   - Alternatively, if you use Nix, `nix develop` provides everything.
+4. Run `bun run dev` to start the development server.
 
-_The following steps are optional, but recommended for performance:_
+### Building the format cache
 
-When you first open the page, it'll take a while to generate the list of supported formats for each tool. If you open the console, you'll see it complaining a bunch about missing caches.
+When the page first loads, it initializes each handler to discover formats. This may take a long time in production, so you can generate `cache.json` in your deployment. I recommend only using it in production, your changes might not apply when a cache is present.
 
-After this is done (indicated by a `Built initial format list` message in the console), use `printSupportedFormatCache()` to get a JSON string with the cache data. You can then save this string to `cache.json` to skip that loading screen on startup.
-
-If you run into issues where your changes seem to not be applying, try disabling this cache.
+To generate the cache automatically, run `bun run cache:build`. Docker does it automatically.
 
 ### Docker (prebuilt image)
 
@@ -119,6 +120,7 @@ class dummyHandler implements FormatHandler {
       lossless: false,
     },
   ];
+  // public readonly requiresMainThread = true; // set this if you require non-web worker APIs like DOM or audio.
   public ready: boolean = false;
 
   async init() {
@@ -162,21 +164,18 @@ Not every handler needs a dedicated unit test, but handlers with non-trivial cus
 If your tool requires an external dependency (which it likely does), there are currently two well-established ways of going about this:
 
 - If it's an `npm` package, just install it to the project like you normally would.
-- If it's a Git repository, add a pinned `http_archive` to [MODULE.bazel](MODULE.bazel) with a `third_party/<name>.BUILD.bazel` listing the files you need, plus a `vendor_tree` target in [third_party/BUILD.bazel](third_party/BUILD.bazel). Import the files as `third_party/generated/<name>/...`.
+- If it's a Git repository or other project, add a pinned `http_archive` to [MODULE.bazel](MODULE.bazel) with a `third_party/<name>.BUILD.bazel` listing the files you need, plus a `vendor_tree` target in [third_party/BUILD.bazel](third_party/BUILD.bazel). Import the files as `third_party/generated/<name>/...`.
 
 **Please try to avoid CDNs (Content Delivery Networks).** They're really cool on paper, but they don't work well with TypeScript, and each one introduces a tiny bit of instability. For a project that leans heavily on external dependencies, those bits of instability can add up fast.
 
-- If you need to load a WebAssembly binary (or similar), add its path to [vite.config.js](vite.config.js) and target it under `/convert/wasm/`. **Do not link to node_modules**.
+- If you need to load a WebAssembly binary (or similar), use `import x from "folder/something.wasm?url"`.
 
 ### AI Usage Policy
 
 If you intend to use an LLM, agent-enabled IDE, or other AI-driven tool for your contribution, please follow these guidelines:
 
-- Clearly state that you've used an LLM, ideally in your pull request's description. Do not attempt to pass off an AI's work as your own. I'm far more likely to accept a pull request that openly admits to using AI than one that does but pretends it doesn't. Transparency helps the maintainer (me) know what to keep an eye out for (e.g. hallucinations), and helps you keep yourself in check.
-- Do not overindulge. If your contribution is trivial or simple enough to be written by hand, please opt to write it by hand. This is especially true if it's your first contribution. You're much more likely to retain knowledge and understanding about architectural details if you've familiarized yourself with the process hands-on first.
-- Keep the scope to things you _could_ do by hand. LLMs are tools, and this is a community-driven project. Orchestrating an AI to write logic that you don't fully comprehend is not only reckless for a community project, it's also disrespectful towards human contributors who took the time to research their additions. In other words, there should _never_ be a scenario where you _need_ an LLM.
+- Clearly state that you've used an LLM, ideally in your pull request's description. Do not attempt to pass off an AI's work as your own.
 - Explain what you (and the LLM) are doing, in a way that makes it clear that you understand the changes you're making.
+- Do not write PR descriptions or issues with an LLM.
 
 Not adhering to these rules will likely get your pull request closed.
-
-I figure that there are people who'd prefer if I merged _zero_ AI-written code, but I believe that's simply not feasible. Just from a code integrity perspective, it's much safer to be transparent about AI usage and define clear guidelines than to make it a taboo and risk people "sneaking in" unvetted AI code. Making things illegal doesn't stop everyone from doing those things - some will still do them, just in secret and with less oversight.
